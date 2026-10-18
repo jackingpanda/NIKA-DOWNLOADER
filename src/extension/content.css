@@ -1,0 +1,221 @@
+/* NIKA DOWNLOADER Floating Video Sniffer Styles */
+.rea-idm-video-sniffer-btn {
+  position: fixed !important;
+  top: 85px;
+  right: 28px;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+  isolation: isolate !important;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(11, 15, 23, 0.94);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  border-radius: 8px;
+  padding: 7px 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: grab;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 12px rgba(6, 182, 212, 0.3);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none !important;
+  opacity: 0.95;
+}
+
+.rea-idm-video-sniffer-btn * {
+  pointer-events: auto !important;
+}
+
+
+.rea-idm-video-sniffer-btn.is-dragging {
+  cursor: grabbing !important;
+  opacity: 1;
+  transform: scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.8), 0 0 20px rgba(6, 182, 212, 0.6);
+}
+
+.rea-idm-video-sniffer-btn:hover {
+  background: rgba(15, 23, 42, 0.98);
+  border-color: #06b6d4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 16px rgba(6, 182, 212, 0.5);
+  opacity: 1;
+}
+
+.rea-idm-sniffer-icon {
+  width: 15px;
+  height: 15px;
+  color: #06b6d4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rea-idm-sniffer-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.rea-idm-sniffer-label {
+  letter-spacing: 0.2px;
+}
+
+.rea-idm-sniffer-count {
+  background: #06b6d4;
+  color: #080b11;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 2px;
+}
+
+/* Multi-Quality Dropdown Menu */
+.rea-idm-sniffer-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #0b0f17;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8), 0 0 20px rgba(6, 182, 212, 0.15);
+  min-width: 310px;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 2147483647 !important;
+  animation: reaIdmFadeIn 0.15s ease-out;
+}
+
+@keyframes reaIdmFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rea-idm-dropdown-header {
+  padding: 10px 14px;
+  background: #111726;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rea-idm-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.rea-idm-sniffer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  gap: 12px;
+}
+
+.rea-idm-sniffer-item:last-child {
+  border-bottom: none;
+}
+
+.rea-idm-sniffer-item:hover {
+  background: rgba(6, 182, 212, 0.12);
+}
+
+.rea-idm-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Quality Badges */
+.rea-idm-quality-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  font-family: monospace;
+}
+
+.badge-fhd {
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(124, 58, 237, 0.4);
+}
+
+.badge-hd {
+  background: rgba(6, 182, 212, 0.2);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+}
+
+.badge-sd {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-audio {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.rea-idm-item-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.rea-idm-item-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rea-idm-item-size {
+  font-size: 10.5px;
+  color: #06b6d4;
+  font-family: monospace;
+}
+
+.rea-idm-download-btn {
+  background: #06b6d4;
+  color: #080b11;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.rea-idm-sniffer-item:hover .rea-idm-download-btn {
+  background: #22d3ee;
+  transform: scale(1.04);
+}

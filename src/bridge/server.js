@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import { WebSocketServer, WebSocket } from 'ws';
 import { logger } from '../core/logger.js';
 
@@ -133,6 +136,45 @@ export class ReaBridgeServer {
           type: 'tasks_list',
           payload: this.queueManager.getAllTasks()
         }));
+        break;
+      }
+      case 'save_blob_media': {
+        try {
+          const { base64Data, filename, sourceUrl } = payload;
+          if (base64Data && filename) {
+            const buffer = Buffer.from(base64Data, 'base64');
+            const defaultDir = this.queueManager.defaultDownloadDir || path.join(os.homedir(), 'Downloads');
+            const targetPath = path.join(defaultDir, filename);
+            await fs.promises.writeFile(targetPath, buffer);
+
+            const task = {
+              id: `blob_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              url: sourceUrl || 'blob:whatsapp-media',
+              filename,
+              destinationDir: defaultDir,
+              targetFilePath: targetPath,
+              totalBytes: buffer.length,
+              downloadedBytes: buffer.length,
+              percent: 100,
+              status: 'completed',
+              speed: 0,
+              supportsRange: false,
+              connections: 1,
+              category: 'Videos',
+              createdAt: Date.now(),
+              completedAt: Date.now()
+            };
+            this.queueManager.tasks.unshift(task);
+            await this.queueManager.stateStore.save(this.queueManager.tasks);
+            this.queueManager.emit('task-added', task);
+            this.queueManager.emit('task-completed', task);
+            logger.info('BRIDGE', `Saved blob media "${filename}" (${buffer.length} bytes) to ${targetPath}`);
+            ws.send(JSON.stringify({ type: 'blob_saved', payload: { success: true, filename, targetPath } }));
+          }
+        } catch (err) {
+          logger.error('BRIDGE', `Failed to save blob media: ${err.message}`);
+          ws.send(JSON.stringify({ type: 'blob_saved', payload: { success: false, error: err.message } }));
+        }
         break;
       }
       default:

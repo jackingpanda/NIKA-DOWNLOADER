@@ -24,7 +24,8 @@ yarn-error.log*
 *.part
 
 # Windows Junction symlink
-extension
+/extension
+
 
 # Environment & Credentials
 .env

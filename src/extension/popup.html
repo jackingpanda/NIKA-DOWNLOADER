@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NIKA DOWNLOADER</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="brand">
+        <span class="brand-title">NIKA<span class="highlight"> DOWNLOADER</span></span>
+        <span class="status-indicator" id="status-indicator">
+          <span class="dot" id="status-dot"></span>
+          <span id="status-text">Connecting...</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Disconnected Warning Banner -->
+    <div class="disconnect-warning" id="disconnect-warning" style="display: none;">
+      <div class="warning-text">⚠️ NIKA Desktop app is not running. Run <code>start-desktop.bat</code></div>
+      <button class="btn-retry" id="btn-retry-connect" type="button">Reconnect</button>
+    </div>
+
+    <!-- Quick Download Box -->
+    <div class="popup-section">
+      <div class="section-title">Quick Download URL</div>
+      <div class="quick-input-row">
+        <input type="text" id="quick-url-input" placeholder="https://example.com/file.zip">
+        <button class="btn-quick-download" id="btn-quick-download" type="button">Download</button>
+      </div>
+    </div>
+
+    <!-- Integration Settings -->
+    <div class="popup-section">
+      <div class="section-title">Integration Controls</div>
+      <div class="setting-row">
+        <span>Intercept Browser Downloads</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-intercept" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <span>Floating Video Sniffer</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-sniffer" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Media Sniffer List -->
+    <div class="popup-section">
+      <div class="section-title">Captured Media on This Page (<span id="media-count">0</span>)</div>
+      <div class="media-list" id="media-list">
+        <div class="media-empty" id="media-empty">No streaming media detected on this tab yet.</div>
+      </div>
+    </div>
+
+    <!-- How to use guide -->
+    <div class="popup-section tips-section">
+      <div class="tip-item">💡 <strong>Right-click</strong> any link, video, or image to download with REA-IDM.</div>
+      <div class="tip-item">📌 <strong>Pin this icon</strong> in Chrome toolbar for instant access.</div>
+    </div>
+
+    <footer class="popup-footer">
+      <div class="bridge-info">WebSocket: <code>127.0.0.1:41719</code></div>
+    </footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

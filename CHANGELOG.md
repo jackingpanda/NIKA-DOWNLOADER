@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Rebranded entire project identity to NIKA DOWNLOADER with production-grade English documentation, custom brand emblem, and media tutorial walkthroughs
 ### Fixed
+- Fix WhatsApp Web status sniffer obstruction with draggable root stacking context, direct 1-click status downloading, and in-memory blob saving
 - Fix titlebar brand version displaying Electron runtime version (v44.9.0) instead of package.json release version
 - Fix progress loss and reset to 0 B/Queued on window close [X] by implementing graceful queue shutdown, periodic progress auto-persistence, and disk chunk state recovery
 - Fix uncatchable Undici assert(!this.paused) socket-end crash by migrating SegmentWorker to native Node HTTP/HTTPS streaming and adding main process uncaught exception guards
