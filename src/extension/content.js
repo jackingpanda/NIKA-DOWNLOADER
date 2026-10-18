@@ -428,14 +428,20 @@ function createSnifferButton() {
     }
   }, { capture: true });
 
-  // Stop pointer events from bubbling to WhatsApp / video player overlays
+  // Stop pointer events from bubbling to WhatsApp / video player overlays (EXCEPT dropdown menu)
   ['pointerdown', 'pointerup', 'touchstart', 'touchend'].forEach(evt => {
     snifferButton.addEventListener(evt, (e) => {
+      if (e.target.closest('.rea-idm-sniffer-dropdown')) return;
       e.stopPropagation();
     }, { capture: true });
   });
 
   snifferButton.addEventListener('click', (e) => {
+    // CRITICAL: If click occurred inside the dropdown menu, NEVER intercept or toggle! Let dropdown items handle their clicks!
+    if (e.target.closest('.rea-idm-sniffer-dropdown')) {
+      return;
+    }
+
     if (ignoreNextClick || hasDragged) {
       ignoreNextClick = false;
       hasDragged = false;
@@ -454,8 +460,15 @@ function createSnifferButton() {
     toggleDropdown(dropdown);
   }, { capture: true });
 
-  document.addEventListener('click', () => {
-    dropdown.style.display = 'none';
+  // Close dropdown when clicking anywhere outside
+  document.addEventListener('click', (e) => {
+    if (!snifferButton.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  dropdown.addEventListener('click', (e) => {
+    e.stopPropagation();
   });
 }
 
@@ -536,11 +549,16 @@ function toggleDropdown(dropdown) {
       <button class="rea-idm-download-btn" type="button">Download</button>
     `;
 
-    item.addEventListener('click', (e) => {
+    const handleDirectDownload = (e) => {
       e.stopPropagation();
+      e.preventDefault();
       triggerDownload(s);
       dropdown.style.display = 'none';
-    });
+    };
+
+    item.addEventListener('click', handleDirectDownload);
+    const dlBtn = item.querySelector('.rea-idm-download-btn');
+    if (dlBtn) dlBtn.addEventListener('click', handleDirectDownload);
 
     listContainer.appendChild(item);
   }
@@ -571,8 +589,9 @@ function toggleDropdown(dropdown) {
       <button class="rea-idm-download-btn" type="button" style="background: rgba(6, 182, 212, 0.2); border: 1px solid rgba(6, 182, 212, 0.5); color: #06b6d4;">Fetch & DL</button>
     `;
 
-    item.addEventListener('click', (e) => {
+    const handleFetchDownload = (e) => {
       e.stopPropagation();
+      e.preventDefault();
       const btn = item.querySelector('.rea-idm-download-btn');
       if (btn) btn.textContent = 'Switching... ⏳';
 
@@ -613,7 +632,11 @@ function toggleDropdown(dropdown) {
       setTimeout(() => {
         dropdown.style.display = 'none';
       }, 600);
-    });
+    };
+
+    item.addEventListener('click', handleFetchDownload);
+    const fetchBtn = item.querySelector('.rea-idm-download-btn');
+    if (fetchBtn) fetchBtn.addEventListener('click', handleFetchDownload);
 
     listContainer.appendChild(item);
   }
@@ -1082,13 +1105,21 @@ async function triggerDownload(item) {
   const qualityTag = item.quality && !item.quality.includes('Auto') && !item.quality.includes('Status') ? ` [${item.quality.replace(/\s+/g, '')}]` : '';
   const filename = item.filename || `${cleanTitle}${qualityTag}${dotExt}`;
 
-  const isYouTube = window.location.hostname.includes('youtube.com') || (typeof item.url === 'string' && item.url.includes('googlevideo.com'));
+  let streamUrl = item.url;
+  try {
+    if (typeof streamUrl === 'string' && streamUrl.includes('googlevideo.com')) {
+      const u = new URL(streamUrl);
+      u.searchParams.delete('range');
+      u.searchParams.delete('rn');
+      streamUrl = u.toString();
+    }
+  } catch {}
 
   // Standard HTTP/HTTPS download forwarded to NIKA engine
   chrome.runtime.sendMessage({
     type: 'DOWNLOAD_MEDIA',
     payload: {
-      url: item.url,
+      url: streamUrl,
       filename,
       referer: window.location.href,
       isYouTube
