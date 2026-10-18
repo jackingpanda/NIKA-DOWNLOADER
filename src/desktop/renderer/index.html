@@ -368,65 +368,72 @@
       </div>
 
       <div class="modal-body indiv-modal-body">
-        <!-- Telemetry & Details Grid -->
-        <div class="indiv-stats-grid">
-          <div class="indiv-stat-row">
-            <span class="indiv-stat-label">File Status:</span>
-            <div class="indiv-stat-value indiv-stat-value-flex">
-              <span id="indiv-status-text" style="font-weight: 600; color: #fff;">Downloading</span>
-              <span class="indiv-resumable-tag" id="indiv-resumable-badge" title="Resume capability">Resume: Yes</span>
+        <!-- Telemetry Key Metrics Tiles (4 balanced cards in 1 row) -->
+        <div class="indiv-metrics-row">
+          <div class="indiv-metric-card">
+            <span class="indiv-metric-label">STATUS</span>
+            <div class="indiv-metric-val indiv-stat-value-flex">
+              <span id="indiv-status-text" class="indiv-status-main">Downloading</span>
+              <span class="indiv-resumable-tag" id="indiv-resumable-badge" title="Server Resume capability">Resume: Yes</span>
             </div>
           </div>
-
-          <div class="indiv-stat-row">
-            <span class="indiv-stat-label">File Size:</span>
-            <span class="indiv-stat-value mono-val" id="indiv-file-size">--</span>
-          </div>
-
-          <div class="indiv-stat-row">
-            <span class="indiv-stat-label">Downloaded:</span>
-            <span class="indiv-stat-value mono-val" id="indiv-downloaded-size">0 MB (0.0%)</span>
-          </div>
-
-          <div class="indiv-stat-row">
-            <span class="indiv-stat-label">Transfer Rate:</span>
-            <span class="indiv-stat-value mono-val indiv-speed-val" id="indiv-transfer-rate">--</span>
-          </div>
-
-          <div class="indiv-stat-row">
-            <span class="indiv-stat-label">Time Left (ETA):</span>
-            <span class="indiv-stat-value mono-val" id="indiv-time-left">--</span>
-          </div>
-
-          <div class="indiv-stat-row">
-            <span class="indiv-stat-label">Save To:</span>
-            <div class="indiv-path-container">
-              <span class="indiv-stat-value mono-val indiv-path-text" id="indiv-file-path" title="Directory path">Default Downloads</span>
-              <button class="btn-sm btn-secondary" id="btn-indiv-open-folder-inline" type="button" title="Open directory in File Explorer">Browse</button>
+          <div class="indiv-metric-card">
+            <span class="indiv-metric-label">DOWNLOADED / SIZE</span>
+            <div class="indiv-metric-val mono-val">
+              <span id="indiv-downloaded-size">0 MB</span>
+              <span class="indiv-metric-sep">/</span>
+              <span id="indiv-file-size" style="color: var(--text-sub);">--</span>
             </div>
           </div>
-
-          <div class="indiv-stat-row">
-            <span class="indiv-stat-label">URL:</span>
-            <div class="indiv-url-container">
-              <span class="indiv-stat-value mono-val indiv-url-text" id="indiv-source-url" title="...">https://...</span>
-              <button class="btn-sm btn-secondary" id="btn-indiv-copy-url" type="button" title="Copy download URL">Copy</button>
-            </div>
+          <div class="indiv-metric-card">
+            <span class="indiv-metric-label">TRANSFER RATE</span>
+            <div class="indiv-metric-val mono-val indiv-speed-val" id="indiv-transfer-rate">--</div>
+          </div>
+          <div class="indiv-metric-card">
+            <span class="indiv-metric-label">ESTIMATED TIME (ETA)</span>
+            <div class="indiv-metric-val mono-val" id="indiv-time-left" style="color: #cbd5e1;">--</div>
           </div>
         </div>
 
-        <!-- Master Overall Progress Bar -->
-        <div class="indiv-progress-section">
+        <!-- Master Overall Progress Bar Card -->
+        <div class="indiv-progress-card">
+          <div class="indiv-progress-header">
+            <span class="indiv-progress-label">Download Progress</span>
+            <span class="indiv-progress-percent" id="indiv-progress-percent-label">0.0%</span>
+          </div>
           <div class="indiv-overall-bar">
             <div class="indiv-overall-fill" id="indiv-overall-fill" style="width: 0%;"></div>
           </div>
         </div>
 
-        <!-- Multi-Segment Active HTTP Range Visualizer -->
-        <div class="indiv-segments-section">
+        <!-- Destination & Source Card -->
+        <div class="indiv-location-card">
+          <div class="indiv-loc-row">
+            <span class="indiv-loc-label">Save To:</span>
+            <div class="indiv-loc-field">
+              <svg class="indiv-loc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="indiv-stat-value mono-val indiv-path-text" id="indiv-file-path" title="Directory path">Default Downloads</span>
+              <button class="btn-sm btn-secondary indiv-action-chip" id="btn-indiv-open-folder-inline" type="button" title="Open directory in File Explorer">Browse</button>
+            </div>
+          </div>
+          <div class="indiv-loc-row">
+            <span class="indiv-loc-label">URL:</span>
+            <div class="indiv-loc-field">
+              <svg class="indiv-loc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <span class="indiv-stat-value mono-val indiv-url-text" id="indiv-source-url" title="...">https://...</span>
+              <button class="btn-sm btn-secondary indiv-action-chip" id="btn-indiv-copy-url" type="button" title="Copy download URL">Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-Segment Active HTTP Range Visualizer Card -->
+        <div class="indiv-segments-card">
           <div class="indiv-segments-header">
-            <span>Active Connections (<span id="indiv-thread-count">0</span> threads)</span>
-            <span style="color: var(--accent-cyan); font-family: var(--font-mono); font-size: 11px;">Zero-Copy Sparse Preallocation</span>
+            <div class="indiv-threads-heading">
+              <span class="indiv-pulse-indicator"></span>
+              <span>Active Connections (<span id="indiv-thread-count">0</span> threads)</span>
+            </div>
+            <span class="indiv-prealloc-badge">Zero-Copy Sparse Preallocation</span>
           </div>
           <div class="indiv-segments-grid" id="indiv-segments-grid">
             <!-- Rendered dynamically per active chunk -->

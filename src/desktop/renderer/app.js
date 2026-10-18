@@ -1594,7 +1594,7 @@ function renderIndividualModalContent(task) {
   if (sizeEl) sizeEl.textContent = formatBytes(task.totalBytes || task.downloadedBytes);
 
   const downEl = document.getElementById('indiv-downloaded-size') || document.getElementById('seg-downloaded-size');
-  if (downEl) downEl.textContent = `${formatBytes(task.downloadedBytes)} (${percent}%)`;
+  if (downEl) downEl.textContent = formatBytes(task.downloadedBytes);
 
   // 5. Speed & ETA
   const speedEl = document.getElementById('indiv-transfer-rate') || document.getElementById('seg-speed');
@@ -1616,45 +1616,57 @@ function renderIndividualModalContent(task) {
     urlEl.title = task.url || '';
   }
 
-  // 7. Master Fill Bar
+  // 7. Master Fill Bar & Percentage Labels
   const fill = document.getElementById('indiv-overall-fill') || document.getElementById('seg-overall-fill');
   if (fill) fill.style.width = `${percent}%`;
 
-  // 8. Dynamic Pause / Resume Button in footer
+  const pctLabel = document.getElementById('indiv-progress-percent-label');
+  if (pctLabel) pctLabel.textContent = `${percent}%`;
+
+  // 8. Contextual Footer Action Buttons
   const btnPauseResume = document.getElementById('btn-indiv-pause-resume');
   const pauseResumeLabel = document.getElementById('indiv-pause-resume-label');
   const pauseResumeIcon = document.getElementById('indiv-pause-resume-icon');
-  if (btnPauseResume && pauseResumeLabel && pauseResumeIcon) {
-    if (task.status === 'downloading' || task.status === 'probing') {
-      pauseResumeLabel.textContent = 'Pause';
-      pauseResumeIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+  const btnOpenFile = document.getElementById('btn-indiv-open-file');
+  const btnCancel = document.getElementById('btn-indiv-cancel');
+
+  if (task.status === 'completed') {
+    // When completed: prominent Open File (cyan primary), Open Folder, and Close.
+    if (btnOpenFile) {
+      btnOpenFile.style.display = 'inline-flex';
+      btnOpenFile.className = 'btn-primary-action';
+      btnOpenFile.disabled = false;
+    }
+    if (btnPauseResume) btnPauseResume.style.display = 'none';
+    if (btnCancel) btnCancel.style.display = 'none';
+  } else if (task.status === 'downloading' || task.status === 'probing') {
+    if (btnOpenFile) btnOpenFile.style.display = 'none';
+    if (btnCancel) btnCancel.style.display = 'inline-flex';
+    if (btnPauseResume) {
+      btnPauseResume.style.display = 'inline-flex';
       btnPauseResume.className = 'btn-secondary';
       btnPauseResume.disabled = false;
-    } else if (task.status === 'completed') {
-      pauseResumeLabel.textContent = 'Completed';
-      pauseResumeIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-      btnPauseResume.className = 'btn-secondary';
-      btnPauseResume.disabled = true;
-    } else {
-      pauseResumeLabel.textContent = 'Resume';
-      pauseResumeIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+      if (pauseResumeLabel) pauseResumeLabel.textContent = 'Pause';
+      if (pauseResumeIcon) {
+        pauseResumeIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+      }
+    }
+  } else {
+    // Paused / Queued / Error
+    if (btnOpenFile) btnOpenFile.style.display = 'none';
+    if (btnCancel) btnCancel.style.display = 'inline-flex';
+    if (btnPauseResume) {
+      btnPauseResume.style.display = 'inline-flex';
       btnPauseResume.className = 'btn-primary-action';
       btnPauseResume.disabled = false;
+      if (pauseResumeLabel) pauseResumeLabel.textContent = task.status === 'error' ? 'Retry' : 'Resume';
+      if (pauseResumeIcon) {
+        pauseResumeIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+      }
     }
   }
 
-  // 9. Open File Button (active only if completed)
-  const btnOpenFile = document.getElementById('btn-indiv-open-file');
-  if (btnOpenFile) {
-    btnOpenFile.disabled = task.status !== 'completed';
-    if (task.status === 'completed') {
-      btnOpenFile.className = 'btn-primary-action';
-    } else {
-      btnOpenFile.className = 'btn-secondary';
-    }
-  }
-
-  // 10. Chunks / Threads Grid
+  // 9. Chunks / Multi-Segment Threads Grid
   const chunks = task.chunks || [];
   const threadCountEl = document.getElementById('indiv-thread-count');
   if (threadCountEl) threadCountEl.textContent = chunks.length || (task.status === 'downloading' ? 1 : 0);
@@ -1662,23 +1674,41 @@ function renderIndividualModalContent(task) {
   const grid = document.getElementById('indiv-segments-grid') || document.getElementById('segments-grid');
   if (grid) {
     if (chunks.length === 0) {
-      grid.innerHTML = '<div style="grid-column: 1/-1; color: var(--text-sub); padding: 8px;">Waiting for connection allocation...</div>';
+      grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-sub); padding: 16px; font-size: 11.5px;">Waiting for connection allocation...</div>';
     } else {
       grid.innerHTML = '';
       for (const c of chunks) {
         const card = document.createElement('div');
         card.className = 'segment-item-card';
-        const cPercent = c.percent || (c.status === 'completed' ? 100 : 0);
+
+        let cPercent = 0;
+        if (task.status === 'completed' || c.status === 'completed') {
+          cPercent = 100;
+        } else if (c.percent !== undefined && !isNaN(c.percent)) {
+          cPercent = Math.min(100, Math.max(0, c.percent));
+        } else if (c.totalBytes && c.totalBytes > 0) {
+          cPercent = Math.min(100, Math.max(0, (c.downloadedBytes / c.totalBytes) * 100));
+        }
+        const cPercentStr = cPercent.toFixed(1);
+
+        const downloadedBytesVal = (task.status === 'completed' || c.status === 'completed') && c.totalBytes
+          ? c.totalBytes
+          : (c.downloadedBytes || 0);
+
+        const metaText = c.totalBytes
+          ? `${formatBytes(downloadedBytesVal)} / ${formatBytes(c.totalBytes)}`
+          : formatBytes(downloadedBytesVal);
+
         card.innerHTML = `
           <div class="segment-item-header">
-            <span style="font-weight: 500; color: #fff;">Thread #${c.id + 1}</span>
-            <span style="font-family: var(--font-mono); color: var(--accent-cyan);">${cPercent}%</span>
+            <span class="segment-thread-num">Thread #${c.id + 1}</span>
+            <span class="segment-thread-pct">${cPercentStr}%</span>
           </div>
           <div class="segment-item-bar">
-            <div class="segment-item-fill" style="width: ${cPercent}%;"></div>
+            <div class="segment-item-fill" style="width: ${cPercentStr}%;"></div>
           </div>
-          <div style="font-size: 10px; color: var(--text-sub); font-family: var(--font-mono);">
-            Offset: ${formatBytes(c.downloadedBytes)}
+          <div class="segment-item-meta" title="${metaText}">
+            ${metaText}
           </div>
         `;
         grid.appendChild(card);
