@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REA-IDM — Next-Gen Internet Download Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <!-- Custom Desktop Frameless Titlebar -->
+  <header class="titlebar" id="app-titlebar">
+    <div class="titlebar-drag-region">
+      <div class="app-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </div>
+        <span class="brand-name">REA<span class="brand-highlight">IDM</span></span>
+        <span class="brand-tag brand-tag-btn" id="brand-version-tag" title="Click to view Changelog (What's New)">v1.1.0</span>
+      </div>
+    </div>
+    <div class="window-controls">
+      <button class="win-btn" id="btn-win-minimize" title="Minimize" type="button">
+        <svg viewBox="0 0 12 12"><rect y="5.5" width="12" height="1.2" fill="currentColor"/></svg>
+      </button>
+      <button class="win-btn" id="btn-win-maximize" title="Maximize" type="button">
+        <svg viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+      </button>
+      <button class="win-btn win-btn-close" id="btn-win-close" title="Close REA-IDM" type="button">
+        <svg viewBox="0 0 12 12"><path d="M2,2 L10,10 M10,2 L2,10" stroke="currentColor" stroke-width="1.3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <!-- Top Sleek IDM Action Toolbar -->
+    <nav class="toolbar" id="main-toolbar">
+      <div class="toolbar-left">
+        <button class="btn-primary-action" id="btn-open-add-modal" title="Add new download URL">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Add Download</span>
+        </button>
+
+        <div class="toolbar-divider"></div>
+
+        <button class="tool-btn" id="btn-toolbar-resume" title="Resume selected download">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <span>Resume</span>
+        </button>
+
+        <button class="tool-btn" id="btn-toolbar-pause" title="Pause selected download">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+          <span>Pause</span>
+        </button>
+
+        <button class="tool-btn" id="btn-toolbar-pause-all" title="Stop all active downloads">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"></rect></svg>
+          <span>Stop All</span>
+        </button>
+
+        <button class="tool-btn" id="btn-toolbar-resume-all" title="Resume all downloads">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 14 9 5 15 5 3" fill="currentColor"/><polygon points="12 3 21 9 12 15 12 3" fill="currentColor"/></svg>
+          <span>Resume All</span>
+        </button>
+
+        <div class="toolbar-divider"></div>
+
+        <button class="tool-btn tool-btn-danger" id="btn-toolbar-delete" title="Delete selected download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span>Delete</span>
+        </button>
+      </div>
+
+      <div class="toolbar-right">
+        <!-- Sleek Speed Limiter -->
+        <div class="speed-limiter-wrap">
+          <label class="switch-mini" title="Enable/Disable Speed Limiter">
+            <input type="checkbox" id="toggle-speed-limit">
+            <span class="slider-mini"></span>
+          </label>
+          <span class="limiter-text">Limit:</span>
+          <input type="range" id="speed-limit-slider" min="0" max="50" step="1" value="0" disabled title="Slide to adjust limit">
+          <span class="limiter-val" id="speed-limit-display">OFF</span>
+        </div>
+
+        <!-- Search Input -->
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="input-search" placeholder="Search...">
+        </div>
+
+        <button class="tool-btn" id="btn-toolbar-clean-temp" title="Clear Incomplete Download Cache & Temp Files">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <span>Clear Temp</span>
+        </button>
+
+        <button class="tool-btn" id="btn-toolbar-settings" title="Preferences & Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Settings</span>
+        </button>
+
+        <button class="tool-btn" id="btn-toolbar-logs" title="System Logs & Diagnostics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <span>Logs</span>
+        </button>
+
+        <button class="tool-btn" id="btn-toolbar-changelog" title="What's New in REA-IDM (Changelog)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          <span>Changelog</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Workspace Container -->
+    <div class="main-container">
+      <!-- Category & Filters Sidebar -->
+      <aside class="sidebar" id="app-sidebar">
+        <!-- Categories Section -->
+        <div class="sidebar-group">
+          <div class="sidebar-heading">Categories</div>
+          <ul class="nav-list">
+            <li class="nav-item active" data-category="all">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              </span>
+              <span class="nav-label">All Downloads</span>
+              <span class="nav-count" id="badge-all">0</span>
+            </li>
+            <li class="nav-item" data-category="downloading">
+              <span class="nav-icon cyan-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              </span>
+              <span class="nav-label">Downloading</span>
+              <span class="nav-count active-count" id="badge-downloading">0</span>
+            </li>
+            <li class="nav-item" data-category="completed">
+              <span class="nav-icon emerald-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              </span>
+              <span class="nav-label">Completed</span>
+              <span class="nav-count" id="badge-completed">0</span>
+            </li>
+            <li class="nav-item" data-category="paused">
+              <span class="nav-icon amber-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="10" y1="15" x2="10" y2="9"></line><line x1="14" y1="15" x2="14" y2="9"></line></svg>
+              </span>
+              <span class="nav-label">Paused / Stopped</span>
+              <span class="nav-count" id="badge-paused">0</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- File Types Section -->
+        <div class="sidebar-group">
+          <div class="sidebar-heading">File Types</div>
+          <ul class="nav-list">
+            <li class="nav-item" data-category="Compressed">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+              </span>
+              <span class="nav-label">Compressed</span>
+              <span class="nav-count" id="badge-compressed">0</span>
+            </li>
+            <li class="nav-item" data-category="Documents">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              </span>
+              <span class="nav-label">Documents</span>
+              <span class="nav-count" id="badge-documents">0</span>
+            </li>
+            <li class="nav-item" data-category="Music">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+              </span>
+              <span class="nav-label">Music</span>
+              <span class="nav-count" id="badge-music">0</span>
+            </li>
+            <li class="nav-item" data-category="Programs">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line></svg>
+              </span>
+              <span class="nav-label">Programs</span>
+              <span class="nav-count" id="badge-programs">0</span>
+            </li>
+            <li class="nav-item" data-category="Videos">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2.18"></rect><line x1="7" y1="4" x2="7" y2="20"></line><line x1="17" y1="4" x2="17" y2="20"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+              </span>
+              <span class="nav-label">Videos</span>
+              <span class="nav-count" id="badge-videos">0</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Queues Section -->
+        <div class="sidebar-group">
+          <div class="sidebar-heading">Queues</div>
+          <ul class="nav-list">
+            <li class="nav-item" data-category="queue-main">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              </span>
+              <span class="nav-label">Main Queue</span>
+              <span class="nav-count">Sync</span>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Main Downloads Area -->
+      <main class="content-view" id="content-view">
+        <!-- Downloads Table -->
+        <div class="table-container">
+          <table class="downloads-table" id="downloads-table">
+            <thead>
+              <tr>
+                <th style="width: 36px; text-align: center;">
+                  <label class="custom-checkbox">
+                    <input type="checkbox" id="select-all-checkbox">
+                    <span class="checkbox-box"></span>
+                  </label>
+                </th>
+                <th>File Name</th>
+                <th style="width: 125px;">Size</th>
+                <th style="width: 155px;">Progress</th>
+                <th style="width: 70px;">Percent</th>
+                <th style="width: 90px;">Speed</th>
+                <th style="width: 80px;">ETA</th>
+                <th style="width: 100px;">Status</th>
+                <th style="width: 95px; text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="downloads-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+
+          <!-- Modern Empty State -->
+          <div class="empty-state" id="empty-state" style="display: none;">
+            <div class="empty-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
+                <path d="M12 12v9"></path>
+                <path d="m8 17 4 4 4-4"></path>
+              </svg>
+            </div>
+            <div class="empty-title">No Downloads in this category</div>
+            <div class="empty-sub">
+              Click <strong>"+ Add Download"</strong> or press <kbd>Ctrl</kbd> + <kbd>V</kbd> to paste a download link.
+            </div>
+            <button class="btn-primary-action" id="btn-empty-add">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Add Download</span>
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Unified Sleek Status & Telemetry Bar (Full-Width Base) -->
+    <footer class="unified-status-bar">
+      <div class="status-left">
+        <div class="stat-pill speed-pill">
+          <span class="live-dot"></span>
+          <span class="stat-title">SPEED</span>
+          <span class="stat-num glow-cyan" id="total-speed-display">0.0 KB/s</span>
+        </div>
+
+        <div class="stat-pill">
+          <span class="stat-title">ACTIVE</span>
+          <span class="stat-num glow-emerald" id="active-tasks-count">0</span>
+        </div>
+
+        <div class="stat-pill">
+          <span class="stat-title">THREADS</span>
+          <span class="stat-num glow-indigo" id="active-threads-count">0</span>
+        </div>
+
+        <div class="bridge-tag" title="REA-IDM WebSocket IPC Bridge">
+          <span class="bridge-dot"></span>
+          <span>Bridge: 41719</span>
+        </div>
+      </div>
+
+      <div class="status-right">
+        <span class="chart-peak-label" id="chart-max-scale">Peak: 0.0 MB/s</span>
+        <div class="chart-canvas-wrap">
+          <canvas id="speed-canvas" height="34"></canvas>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Add Download Modal Dialog -->
+  <div class="modal-backdrop" id="modal-add-download" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Enter Download Address
+        </div>
+        <button class="modal-close-btn" id="btn-modal-close" type="button">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-download-url">Download URL</label>
+          <input type="text" id="input-download-url" placeholder="https://example.com/file.zip" autofocus>
+        </div>
+
+        <div class="form-group">
+          <label for="input-download-filename">File Name (optional, detected automatically)</label>
+          <input type="text" id="input-download-filename" placeholder="Auto-detect from server">
+        </div>
+
+        <div class="form-group">
+          <label for="input-save-path">Save Folder</label>
+          <div class="input-with-button">
+            <input type="text" id="input-save-path" readonly>
+            <button class="btn-secondary" id="btn-browse-folder" type="button">Browse...</button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="select-connections">Parallel Connections (Chunks)</label>
+            <select id="select-connections">
+              <option value="1">1 Connection (Single Stream)</option>
+              <option value="4">4 Connections</option>
+              <option value="8" selected>8 Connections (Recommended)</option>
+              <option value="16">16 Connections (Maximum Speed)</option>
+              <option value="32">32 Connections (Ultra High-Speed)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btn-modal-cancel" type="button">Cancel</button>
+        <button class="btn-secondary" id="btn-download-later" type="button">Download Later</button>
+        <button class="btn-primary-action" id="btn-download-now" type="button">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <span>Start Download</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual Download Window (IDM Download Status Dialog) -->
+  <div class="modal-backdrop" id="modal-individual-download" style="display: none;">
+    <div class="modal-card modal-individual-card">
+      <div class="modal-header">
+        <div class="modal-title indiv-header-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          <span class="indiv-percent-badge" id="indiv-percent-badge">0.0%</span>
+          <span class="indiv-title-filename" id="indiv-file-title" title="Download status">File.ext</span>
+        </div>
+        <div class="indiv-header-actions">
+          <span class="status-pill status-downloading" id="indiv-status-pill">Downloading</span>
+          <button class="modal-close-btn" id="btn-indiv-modal-close" type="button" title="Close Window">&times;</button>
+        </div>
+      </div>
+
+      <div class="modal-body indiv-modal-body">
+        <!-- Telemetry & Details Grid -->
+        <div class="indiv-stats-grid">
+          <div class="indiv-stat-row">
+            <span class="indiv-stat-label">File Status:</span>
+            <div class="indiv-stat-value indiv-stat-value-flex">
+              <span id="indiv-status-text" style="font-weight: 600; color: #fff;">Downloading</span>
+              <span class="indiv-resumable-tag" id="indiv-resumable-badge" title="Resume capability">Resume: Yes</span>
+            </div>
+          </div>
+
+          <div class="indiv-stat-row">
+            <span class="indiv-stat-label">File Size:</span>
+            <span class="indiv-stat-value mono-val" id="indiv-file-size">--</span>
+          </div>
+
+          <div class="indiv-stat-row">
+            <span class="indiv-stat-label">Downloaded:</span>
+            <span class="indiv-stat-value mono-val" id="indiv-downloaded-size">0 MB (0.0%)</span>
+          </div>
+
+          <div class="indiv-stat-row">
+            <span class="indiv-stat-label">Transfer Rate:</span>
+            <span class="indiv-stat-value mono-val indiv-speed-val" id="indiv-transfer-rate">--</span>
+          </div>
+
+          <div class="indiv-stat-row">
+            <span class="indiv-stat-label">Time Left (ETA):</span>
+            <span class="indiv-stat-value mono-val" id="indiv-time-left">--</span>
+          </div>
+
+          <div class="indiv-stat-row">
+            <span class="indiv-stat-label">Save To:</span>
+            <div class="indiv-path-container">
+              <span class="indiv-stat-value mono-val indiv-path-text" id="indiv-file-path" title="Directory path">Default Downloads</span>
+              <button class="btn-sm btn-secondary" id="btn-indiv-open-folder-inline" type="button" title="Open directory in File Explorer">Browse</button>
+            </div>
+          </div>
+
+          <div class="indiv-stat-row">
+            <span class="indiv-stat-label">URL:</span>
+            <div class="indiv-url-container">
+              <span class="indiv-stat-value mono-val indiv-url-text" id="indiv-source-url" title="...">https://...</span>
+              <button class="btn-sm btn-secondary" id="btn-indiv-copy-url" type="button" title="Copy download URL">Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Master Overall Progress Bar -->
+        <div class="indiv-progress-section">
+          <div class="indiv-overall-bar">
+            <div class="indiv-overall-fill" id="indiv-overall-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Multi-Segment Active HTTP Range Visualizer -->
+        <div class="indiv-segments-section">
+          <div class="indiv-segments-header">
+            <span>Active Connections (<span id="indiv-thread-count">0</span> threads)</span>
+            <span style="color: var(--accent-cyan); font-family: var(--font-mono); font-size: 11px;">Zero-Copy Sparse Preallocation</span>
+          </div>
+          <div class="indiv-segments-grid" id="indiv-segments-grid">
+            <!-- Rendered dynamically per active chunk -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Controls with IDM Action Buttons -->
+      <div class="modal-footer indiv-modal-footer">
+        <div class="indiv-footer-left">
+          <label class="indiv-close-on-complete-label">
+            <input type="checkbox" id="indiv-close-on-complete">
+            <span>Close dialog when download completes</span>
+          </label>
+        </div>
+        <div class="indiv-footer-actions">
+          <button class="btn-secondary" id="btn-indiv-open-file" type="button" disabled title="Open downloaded file">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <span>Open File</span>
+          </button>
+          <button class="btn-secondary" id="btn-indiv-open-folder" type="button" title="Open Folder in File Explorer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            <span>Open Folder</span>
+          </button>
+          <button class="btn-secondary" id="btn-indiv-pause-resume" type="button">
+            <span id="indiv-pause-resume-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            </span>
+            <span id="indiv-pause-resume-label">Pause</span>
+          </button>
+          <button class="btn-secondary btn-danger-action" id="btn-indiv-cancel" type="button" title="Cancel and delete download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <span>Cancel</span>
+          </button>
+          <button class="btn-secondary" id="btn-indiv-close" type="button">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Changelog & Release Notes Modal Dialog -->
+  <div class="modal-backdrop" id="modal-changelog" style="display: none;">
+    <div class="modal-card modal-large modal-changelog-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          What's New in REA-IDM — Release Notes
+        </div>
+        <button class="modal-close-btn" id="btn-changelog-modal-close" type="button">&times;</button>
+      </div>
+      <div class="modal-body changelog-modal-body" id="changelog-body">
+        <div class="changelog-loading">Loading release notes...</div>
+      </div>
+      <div class="modal-footer">
+        <div class="changelog-footer-info">Managed via Keep a Changelog & SemVer</div>
+        <button class="btn-primary-action" id="btn-changelog-close" type="button">Got it!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal Dialog with Checklist -->
+  <div class="modal-backdrop" id="modal-delete-confirm" style="display: none;">
+    <div class="modal-card modal-delete-card">
+      <div class="modal-header">
+        <div class="modal-title modal-title-danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          Delete Download
+        </div>
+        <button class="modal-close-btn" id="btn-delete-modal-close" type="button">&times;</button>
+      </div>
+      <div class="modal-body modal-delete-body">
+        <p class="delete-prompt-msg" id="delete-prompt-msg">Remove selected download from list?</p>
+        
+        <div class="delete-file-preview" id="delete-file-preview">
+          <div class="delete-file-name" id="delete-file-name">filename.zip</div>
+          <div class="delete-file-path" id="delete-file-path">📁 C:\Users\...\Downloads</div>
+        </div>
+
+        <div class="delete-option-box">
+          <label class="custom-checkbox delete-checkbox-wrap">
+            <input type="checkbox" id="check-delete-file-from-disk">
+            <span class="checkbox-box"></span>
+            <span class="delete-checkbox-label">Also delete downloaded file(s) from directory / disk</span>
+          </label>
+          <div class="delete-checkbox-hint">If left unchecked, only the entry from REA-IDM will be removed and the file will stay intact on your computer.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btn-delete-cancel" type="button">Cancel</button>
+        <button class="btn-danger-action" id="btn-delete-confirm" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Logs & Diagnostics Modal Dialog -->
+  <div class="modal-backdrop" id="modal-logs" style="display: none;">
+    <div class="modal-card modal-large modal-logs-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <span>System Logs & Diagnostics</span>
+        </div>
+        <div class="modal-header-actions">
+          <span class="logs-live-badge"><span class="live-dot"></span> LIVE</span>
+          <button class="modal-close-btn" id="btn-logs-modal-close" type="button" title="Close Logs">&times;</button>
+        </div>
+      </div>
+      <div class="modal-logs-toolbar">
+        <div class="logs-filter-group">
+          <button class="logs-filter-btn active" data-level="ALL">ALL</button>
+          <button class="logs-filter-btn filter-error" data-level="ERROR">ERROR</button>
+          <button class="logs-filter-btn filter-warn" data-level="WARN">WARN</button>
+          <button class="logs-filter-btn filter-info" data-level="INFO">INFO</button>
+          <button class="logs-filter-btn filter-debug" data-level="DEBUG">DEBUG</button>
+        </div>
+        <div class="logs-search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="input-logs-search" placeholder="Filter message, stack or category...">
+        </div>
+        <div class="logs-actions-group">
+          <button class="btn-xs btn-secondary" id="btn-logs-copy" title="Copy visible logs to clipboard">Copy</button>
+          <button class="btn-xs btn-secondary" id="btn-logs-export" title="Export logs to file">Export</button>
+          <button class="btn-xs btn-secondary" id="btn-logs-folder" title="Open log files directory">Folder</button>
+          <button class="btn-xs btn-danger-action" id="btn-logs-clear" title="Clear in-memory logs">Clear</button>
+        </div>
+      </div>
+      <div class="modal-body modal-logs-body" id="logs-container">
+        <div class="logs-empty-placeholder">No log events recorded yet.</div>
+      </div>
+      <div class="modal-footer logs-footer">
+        <div class="logs-footer-stats">
+          <span id="logs-count-display">0 entries</span>
+          <span class="logs-footer-sep">·</span>
+          <span id="logs-file-path">logs/rea-idm.log</span>
+        </div>
+        <button class="btn-primary-action" id="btn-logs-close" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clean Incomplete Temp & Cache Modal Dialog -->
+  <div class="modal-backdrop" id="modal-clean-temp" style="display: none;">
+    <div class="modal-card modal-large modal-clean-temp-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <span>Clear Incomplete Temp & Cache</span>
+        </div>
+        <button class="modal-close-btn" id="btn-clean-temp-close-x" type="button" title="Close">&times;</button>
+      </div>
+
+      <div class="modal-body clean-temp-body">
+        <!-- Reclaimable Storage Hero Banner -->
+        <div class="clean-hero-card">
+          <div class="clean-hero-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </div>
+          <div class="clean-hero-content">
+            <div class="clean-hero-title" id="clean-hero-bytes">0 B Reclaimable Space</div>
+            <div class="clean-hero-desc" id="clean-hero-desc">Found 0 incomplete downloads and 0 abandoned cache files.</div>
+          </div>
+          <button class="btn-sm btn-secondary" id="btn-clean-refresh-stats" type="button" title="Refresh disk scan">Refresh</button>
+        </div>
+
+        <!-- Clean Options Form -->
+        <div class="clean-options-card">
+          <div class="clean-section-heading">Cleanup Behavior</div>
+          
+          <div class="clean-radio-group">
+            <label class="custom-radio">
+              <input type="radio" name="clean-action-mode" value="reset" checked>
+              <span class="radio-box"></span>
+              <span class="radio-label">
+                <strong>Reset incomplete downloads to 0%</strong> (Delete temporary chunk data from disk, keep task in list to redownload later)
+              </span>
+            </label>
+            <label class="custom-radio">
+              <input type="radio" name="clean-action-mode" value="remove">
+              <span class="radio-box"></span>
+              <span class="radio-label">
+                <strong>Remove incomplete downloads completely</strong> (Delete files from disk AND remove entries from download list)
+              </span>
+            </label>
+          </div>
+
+          <div class="clean-checkbox-row">
+            <label class="custom-checkbox">
+              <input type="checkbox" id="check-clean-orphaned" checked>
+              <span class="checkbox-box"></span>
+              <span class="checkbox-label">Also clean orphaned <code>.rea-meta</code> files & abandoned temp chunks in download folder</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Incomplete Files List -->
+        <div class="clean-files-section">
+          <div class="clean-files-header">
+            <div class="clean-section-heading">Incomplete Downloads on Disk</div>
+            <label class="clean-select-all-wrap">
+              <input type="checkbox" id="check-clean-select-all" checked>
+              <span>Select All</span>
+            </label>
+          </div>
+          <div class="clean-files-list" id="clean-files-container">
+            <div class="clean-empty-msg">No incomplete downloads found on disk.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer clean-temp-footer">
+        <button class="btn-secondary" id="btn-clean-cancel" type="button">Cancel</button>
+        <button class="btn-danger-action" id="btn-clean-execute" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span id="btn-clean-label">Clean Incomplete Temp</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal Dialog -->
+  <div class="modal-backdrop" id="modal-settings" style="display: none;">
+    <div class="modal-card modal-settings-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Preferences & Settings</span>
+        </div>
+        <button class="modal-close-btn" id="btn-settings-close-x" type="button" title="Close">&times;</button>
+      </div>
+
+      <div class="modal-body settings-modal-body">
+        <!-- Default Download Location -->
+        <div class="setting-item">
+          <label class="setting-label">Default Download Directory</label>
+          <div class="setting-input-browse">
+            <input type="text" id="setting-download-dir" readonly>
+            <button class="btn-secondary" id="btn-setting-browse-dir" type="button">Browse...</button>
+          </div>
+          <div class="setting-hint">New downloads will automatically be saved into this directory.</div>
+        </div>
+
+        <!-- Concurrency Limits -->
+        <div class="setting-row-split">
+          <div class="setting-item">
+            <label class="setting-label">Max Concurrent Downloads</label>
+            <select id="setting-max-concurrent" class="modal-select">
+              <option value="1">1 Active Download</option>
+              <option value="2">2 Active Downloads</option>
+              <option value="3" selected>3 Active Downloads</option>
+              <option value="5">5 Active Downloads</option>
+              <option value="8">8 Active Downloads</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label class="setting-label">Default Connections per File</label>
+            <select id="setting-default-conns" class="modal-select">
+              <option value="4">4 Connections</option>
+              <option value="8" selected>8 Connections (Recommended)</option>
+              <option value="16">16 Connections (Fast)</option>
+              <option value="32">32 Connections (Maximum Turbo)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Incomplete Download & Temp Cache Auto-clean Option -->
+        <div class="setting-item setting-toggle-card">
+          <div class="setting-toggle-info">
+            <div class="setting-toggle-title">Auto-Clean Temporary & Incomplete Cache</div>
+            <div class="setting-toggle-desc">Automatically purge partial files and <code>.rea-meta</code> from disk when a download task is deleted from the list.</div>
+          </div>
+          <label class="switch-mini">
+            <input type="checkbox" id="setting-auto-clean-temp" checked>
+            <span class="slider-mini"></span>
+          </label>
+        </div>
+
+        <!-- Quick Clean Temp Shortcut Box -->
+        <div class="setting-quick-clean-box">
+          <div class="quick-clean-text">
+            <strong>Reclaim Storage:</strong> Clean up partial downloads and abandoned metadata files right now.
+          </div>
+          <button class="btn-sm btn-secondary" id="btn-setting-open-cleaner" type="button">Open Temp Cleaner</button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btn-settings-cancel" type="button">Cancel</button>
+        <button class="btn-primary-action" id="btn-settings-save" type="button">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clipboard URL Sniffer Toast -->
+  <div class="toast-clipboard" id="toast-clipboard" style="display: none;">
+    <div class="toast-icon">🔗</div>
+    <div class="toast-content">
+      <div class="toast-title">Download Link Detected in Clipboard</div>
+      <div class="toast-url" id="toast-url-text">https://...</div>
+    </div>
+    <div class="toast-actions">
+      <button class="btn-sm btn-primary-action" id="btn-toast-download" type="button">Download</button>
+      <button class="btn-sm btn-secondary" id="btn-toast-dismiss" type="button">&times;</button>
+    </div>
+  </div>
+
+  <!-- IDM-style Desktop Context Menu -->
+  <div class="custom-context-menu" id="task-context-menu" style="display: none;">
+    <div class="ctx-menu-header" id="ctx-header-title">filename.zip</div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-menu-item" id="ctx-action-primary">
+      <span class="ctx-icon" id="ctx-icon-primary">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+      </span>
+      <span class="ctx-label" id="ctx-label-primary">Resume Download</span>
+    </div>
+    <div class="ctx-menu-item" id="ctx-action-open-file">
+      <span class="ctx-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+      </span>
+      <span class="ctx-label">Open File</span>
+    </div>
+    <div class="ctx-menu-item" id="ctx-action-open-folder">
+      <span class="ctx-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      </span>
+      <span class="ctx-label">Open Containing Folder</span>
+    </div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-menu-item" id="ctx-action-redownload">
+      <span class="ctx-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+      </span>
+      <span class="ctx-label">Redownload (Start Over)</span>
+    </div>
+    <div class="ctx-menu-item" id="ctx-action-copy-url">
+      <span class="ctx-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      </span>
+      <span class="ctx-label">Copy Download URL</span>
+    </div>
+    <div class="ctx-menu-item" id="ctx-action-clean-temp">
+      <span class="ctx-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+      </span>
+      <span class="ctx-label">Clear Temp / Cache</span>
+    </div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-menu-item" id="ctx-action-properties">
+      <span class="ctx-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+      </span>
+      <span class="ctx-label">Download Properties...</span>
+    </div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-menu-item ctx-item-danger" id="ctx-action-delete">
+      <span class="ctx-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </span>
+      <span class="ctx-label">Delete Download...</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

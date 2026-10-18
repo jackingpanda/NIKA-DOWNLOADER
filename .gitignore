@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+package-lock.json.bak
+
+# Production / Electron Builds
+dist/
+build/
+out/
+release/
+
+# Temporary / Scratch scripts & dumps
+scratch/
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Download engine cache and partial files
+*.rea-meta
+*.tmp
+*.tmp.*
+*.crdownload
+*.part
+
+# Windows Junction symlink
+extension
+
+# Environment & Credentials
+.env
+.env.local
+.env.*.local
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.agents/
+
+# Testing temporary artifacts
+test-temp/
+rea-test-*
+rea-clean-test-*

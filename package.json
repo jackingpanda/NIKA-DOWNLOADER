@@ -1,0 +1,33 @@
+{
+  "name": "rea-idm",
+  "version": "1.1.0",
+  "description": "Next-Gen High Performance Download Manager inspired by IDM architecture",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "rea-idm": "./src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "desktop": "electron src/desktop/main.js",
+    "extension": "node scripts/install-extension.js",
+    "changelog": "node scripts/changelog.js",
+    "test": "node test/test-download.js",
+    "test:all": "node test/test-download.js && node test/test-queue.js && node test/test-bridge.js && node test/test-ui-functions.js && node test/test-benchmark.js"
+  },
+  "keywords": [
+    "download-manager",
+    "multipart",
+    "idm",
+    "parallel-downloader",
+    "range-requests"
+  ],
+  "author": "REA IDM Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^44.9.0"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
+  }
+}

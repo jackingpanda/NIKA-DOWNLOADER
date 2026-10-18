@@ -1,0 +1,91 @@
+import assert from 'node:assert';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { calculateChunks, dynamicSplitChunk } from '../src/core/chunk-calculator.js';
+import { probeUrl } from '../src/core/probe.js';
+import { ReaDownloader } from '../src/core/downloader.js';
+
+async function runTests() {
+  console.log('--- [Test 1] Testing Chunk Calculator Partitioning ---');
+  const totalSize = 10 * 1024 * 1024; // 10 MB
+  const chunks = calculateChunks(totalSize, 8);
+  assert.strictEqual(chunks.length, 8, 'Should produce exactly 8 chunks');
+  
+  let totalChunkBytes = 0;
+  for (let i = 0; i < chunks.length; i++) {
+    const c = chunks[i];
+    assert.strictEqual(c.id, i);
+    totalChunkBytes += (c.endByte - c.startByte + 1);
+    if (i > 0) {
+      assert.strictEqual(c.startByte, chunks[i - 1].endByte + 1, 'Chunks must be contiguous');
+    }
+  }
+  assert.strictEqual(totalChunkBytes, totalSize, 'Sum of chunks must equal total file size');
+  console.log('✅ Chunk calculator partitioning: PASS');
+
+  console.log('\n--- [Test 2] Testing Dynamic Chunk Re-Splitting ---');
+  const slowChunk = {
+    id: 3,
+    startByte: 3000000,
+    endByte: 5000000,
+    currentOffset: 3100000,
+    downloadedBytes: 100000,
+    status: 'downloading'
+  };
+  const newChunk = dynamicSplitChunk(slowChunk, 8);
+  assert.ok(newChunk, 'Should successfully split chunk with large remaining bytes');
+  assert.strictEqual(slowChunk.endByte + 1, newChunk.startByte, 'Split chunks must be contiguous');
+  console.log('✅ Dynamic chunk re-splitting: PASS');
+
+  console.log('\n--- [Test 3] Testing Remote URL Probe & Range Detection ---');
+  const testUrl = 'https://raw.githubusercontent.com/morluto/rea/main/README.md';
+  const probe = await probeUrl(testUrl);
+  console.log('Probe result:', {
+    url: probe.url,
+    filename: probe.filename,
+    contentLength: probe.contentLength,
+    supportsRange: probe.supportsRange,
+    contentType: probe.contentType
+  });
+  assert.ok(probe.filename, 'Filename must be resolved');
+  assert.ok(probe.contentLength > 0, 'Content-Length must be detected');
+  console.log('✅ Remote URL probe: PASS');
+
+  console.log('\n--- [Test 4] Testing End-to-End Download & Integrity ---');
+  const tempDir = path.join(process.cwd(), 'temp_test_downloads');
+  await fs.mkdir(tempDir, { recursive: true });
+
+  const downloader = new ReaDownloader(testUrl, {
+    destinationDir: tempDir,
+    filename: 'tested_rea_readme.md',
+    connections: 4
+  });
+
+  let progressEventsCount = 0;
+  downloader.on('progress', (p) => {
+    progressEventsCount++;
+  });
+
+  const savedFile = await downloader.start();
+  assert.ok(savedFile, 'Saved filepath must be returned');
+
+  const fileExists = await fs.stat(savedFile);
+  assert.strictEqual(fileExists.size, probe.contentLength, 'Downloaded file size must match remote length exactly');
+  assert.ok(progressEventsCount > 0, 'Progress events must be emitted');
+
+  // Verify file content starts with expected markdown header
+  const content = await fs.readFile(savedFile, 'utf8');
+  assert.ok(content.includes('REA'), 'File content should contain REA text');
+  console.log(`✅ End-to-End download test: PASS (Downloaded ${fileExists.size} bytes without corruption)`);
+
+  // Cleanup test artifacts
+  await fs.rm(tempDir, { recursive: true, force: true });
+
+  console.log('\n🎉 ALL PHASE 1 CORE TESTS PASSED SUCCESSFULLY!\n');
+}
+
+runTests().catch(err => {
+  console.error('❌ Test Failure:', err);
+  process.exit(1);
+});
