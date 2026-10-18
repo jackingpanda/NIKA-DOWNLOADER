@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace raw screenshots with high-definition, informative production mockups for Desktop Dashboard, Multi-Quality Video Sniffer, and WhatsApp Web Status Saver
 - Rebranded entire project identity to NIKA DOWNLOADER with production-grade English documentation, custom brand emblem, and media tutorial walkthroughs
 ### Fixed
+- Universal cross-platform filename sanitization (sanitizeFilename) across storage, downloader, queue-manager, bridge, and extension to resolve ENOENT errors on Windows caused by forbidden characters (such as pipe | or colons in YouTube titles)
+- WebExtension background service worker now dynamically injects MAIN_WORLD bridge scripts (yt-bridge.js and wa-bridge.js) into existing tabs on extension reload/startup
+- Eliminated WhatsApp Web status sniffer button blinking and improved media detection with requestAnimationFrame throttled DOM inspection and smooth 2.5s debouncing
 - Restore missing isYouTube variable declaration in triggerDownload that caused silent ReferenceError crash preventing all downloads
 - Fix sniffer button capture listener intercepting and swallowing dropdown item click events on YouTube and web streams
 - Add complete YouTube itag mappings for 1440p/4K/60fps formats, DASH buffer flush on quality switch, in-page toast feedback, and fallback stream downloader
@@ -24,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix uncatchable Undici assert(!this.paused) socket-end crash by migrating SegmentWorker to native Node HTTP/HTTPS streaming and adding main process uncaught exception guards
 - Fix row checkbox becoming unclickable and losing checked state during active download progress via persistent selection state and targeted cell updates
 ### Added
+- Interactive error tooltips on task status pills in desktop download table displaying exact root-cause failure messages upon hover
 - Automated Git and Semantic Version Rollback Manager (scripts/rollback.js, rollback.bat, and GitHub Actions workflow) with safe isolated branch, linear revert, and detached inspection modes
 - IDM-style custom right-click context menu for download items (Resume/Pause, Open File, Open Folder, Redownload, Copy URL, Clear Temp, Properties, and Delete) with smart viewport positioning
 - Automatic window layout and size persistence (width, height, coordinates, and maximized state) with multi-display bounds validation

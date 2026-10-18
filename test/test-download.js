@@ -96,6 +96,23 @@ async function runTests() {
   assert.strictEqual(gvProbe.headers['Origin'], 'https://www.youtube.com', 'Must provide YouTube origin header');
   console.log('✅ YouTube Google Video probe & cookie stripping: PASS');
 
+  console.log('\n--- [Test 6] Testing Cross-Platform Filename Sanitization ---');
+  const { sanitizeFilename } = await import('../src/core/storage.js');
+  const dirtyYoutubeName = 'I Built a HUGE Crocodile Habitat in Planet Zoo 2 | Speed Build [360p].mp4';
+  const cleanName = sanitizeFilename(dirtyYoutubeName);
+  assert.strictEqual(cleanName, 'I Built a HUGE Crocodile Habitat in Planet Zoo 2 _ Speed Build [360p].mp4');
+  assert.strictEqual(cleanName.includes('|'), false, 'Pipe character must be replaced');
+
+  const colonAndQuestion = 'Episode 1: Who is Antigravity? [1080p].mp4';
+  assert.strictEqual(sanitizeFilename(colonAndQuestion), 'Episode 1_ Who is Antigravity_ [1080p].mp4');
+
+  const trailingSpacesAndDots = 'my file name . . . ';
+  assert.strictEqual(sanitizeFilename(trailingSpacesAndDots), 'my file name');
+
+  const reservedDevice = 'con.mp4';
+  assert.strictEqual(sanitizeFilename(reservedDevice), '_con.mp4');
+  console.log('✅ Cross-Platform Filename Sanitization: PASS');
+
   console.log('\n🎉 ALL PHASE 1 CORE TESTS PASSED SUCCESSFULLY!\n');
 }
 

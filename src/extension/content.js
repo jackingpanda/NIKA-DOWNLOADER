@@ -834,58 +834,47 @@ function getWhatsAppStatusContainer() {
 
 function getActiveWhatsAppMedia() {
   const container = getWhatsAppStatusContainer();
-  if (!container) return null;
+  const searchRoots = container ? [container, document.body] : [document.body];
 
-  // 1. Check for active <video>
-  const videos = Array.from(container.querySelectorAll('video'));
-  for (const v of videos) {
-    const src = v.currentSrc || v.src || v.querySelector('source')?.src;
-    if (src && (src.startsWith('blob:') || src.startsWith('http://') || src.startsWith('https://'))) {
-      return {
-        element: v,
-        url: src,
-        type: 'video',
-        ext: src.includes('.webm') ? 'webm' : 'mp4',
-        isBlob: src.startsWith('blob:')
-      };
-    }
-  }
-
-  const allVideos = Array.from(document.querySelectorAll('video'));
-  for (const v of allVideos) {
-    const rect = v.getBoundingClientRect();
-    if (rect.width > 200 && rect.height > 200) {
+  for (const root of searchRoots) {
+    if (!root) continue;
+    // 1. Check for active <video>
+    const videos = Array.from(root.querySelectorAll('video'));
+    for (const v of videos) {
       const src = v.currentSrc || v.src || v.querySelector('source')?.src;
-      if (src) {
-        return {
-          element: v,
-          url: src,
-          type: 'video',
-          ext: src.includes('.webm') ? 'webm' : 'mp4',
-          isBlob: src.startsWith('blob:')
-        };
+      if (src && (src.startsWith('blob:') || src.startsWith('http://') || src.startsWith('https://'))) {
+        const rect = v.getBoundingClientRect();
+        if (rect.width > 120 && rect.height > 120) {
+          return {
+            element: v,
+            url: src,
+            type: 'video',
+            ext: src.includes('.webm') ? 'webm' : 'mp4',
+            isBlob: src.startsWith('blob:')
+          };
+        }
       }
     }
-  }
 
-  // 2. Check for active status photo/image
-  const images = Array.from(container.querySelectorAll('img'));
-  const statusImg = images.find(img => {
-    const src = img.src || '';
-    if (!src) return false;
-    if (src.includes('avatar') || src.includes('profile') || src.includes('emoji')) return false;
-    const rect = img.getBoundingClientRect();
-    return (rect.width > 200 && rect.height > 200) || (img.naturalWidth > 200 && img.naturalHeight > 200);
-  });
+    // 2. Check for active status photo/image
+    const images = Array.from(root.querySelectorAll('img'));
+    const statusImg = images.find(img => {
+      const src = img.src || '';
+      if (!src) return false;
+      if (src.includes('avatar') || src.includes('profile') || src.includes('emoji')) return false;
+      const rect = img.getBoundingClientRect();
+      return (rect.width > 200 && rect.height > 200) || (img.naturalWidth > 200 && img.naturalHeight > 200);
+    });
 
-  if (statusImg && statusImg.src) {
-    return {
-      element: statusImg,
-      url: statusImg.src,
-      type: 'image',
-      ext: 'jpg',
-      isBlob: statusImg.src.startsWith('blob:')
-    };
+    if (statusImg && statusImg.src) {
+      return {
+        element: statusImg,
+        url: statusImg.src,
+        type: 'image',
+        ext: 'jpg',
+        isBlob: statusImg.src.startsWith('blob:')
+      };
+    }
   }
 
   return null;
@@ -924,67 +913,74 @@ function getWhatsAppStatusContact() {
 
 let waStatusActive = false;
 let waStatusMedia = null;
-let waHideDebounceTimer = null;
+let waHideTimer = null;
+let waUpdateScheduled = false;
 
 function initWhatsAppStatusObserver() {
   if (!isWhatsAppWeb()) return;
   if (window !== window.top) return; // Guard: Top window only!
 
   const updateWhatsAppStatusState = () => {
-    const container = getWhatsAppStatusContainer();
-    if (container) {
-      const media = getActiveWhatsAppMedia();
-      if (media && media.url) {
-        waStatusMedia = media;
-        waStatusActive = true;
+    const media = getActiveWhatsAppMedia();
+    if (media && media.url) {
+      waStatusMedia = media;
+      waStatusActive = true;
 
-        if (waHideDebounceTimer) {
-          clearTimeout(waHideDebounceTimer);
-          waHideDebounceTimer = null;
-        }
-
-        if (!snifferButton) {
-          createSnifferButton();
-        }
-
-        positionSniffer(media.element);
-
-        const label = snifferButton.querySelector('.rea-idm-sniffer-label');
-        if (label && !label.textContent.includes('Saved') && !label.textContent.includes('Saving') && !label.textContent.includes('Extracting')) {
-          label.textContent = media.type === 'video' ? 'Download Status Video' : 'Download Status Photo';
-        }
-        const count = snifferButton.querySelector('.rea-idm-sniffer-count');
-        if (count) count.textContent = '1';
-
-        snifferButton.style.display = 'flex';
-        snifferButton.style.opacity = '1';
-        return;
+      if (waHideTimer) {
+        clearTimeout(waHideTimer);
+        waHideTimer = null;
       }
+
+      if (!snifferButton) {
+        createSnifferButton();
+      }
+
+      positionSniffer(media.element);
+
+      const label = snifferButton.querySelector('.rea-idm-sniffer-label');
+      if (label && !label.textContent.includes('Saved') && !label.textContent.includes('Saving') && !label.textContent.includes('Extracting')) {
+        label.textContent = media.type === 'video' ? 'Download Status Video' : 'Download Status Photo';
+      }
+      const count = snifferButton.querySelector('.rea-idm-sniffer-count');
+      if (count) count.textContent = '1';
+
+      snifferButton.style.display = 'flex';
+      snifferButton.style.opacity = '1';
+      return;
     }
 
-    // Debounce hiding so story slide transitions do not cause the button to blink
-    if (waStatusActive && !waHideDebounceTimer) {
-      waHideDebounceTimer = setTimeout(() => {
-        const recheckContainer = getWhatsAppStatusContainer();
-        const recheckMedia = getActiveWhatsAppMedia();
-        if (!recheckContainer || !recheckMedia) {
+    // If media was active but momentarily not detected (slide transition / buffering),
+    // wait 2.5 seconds before hiding so it NEVER flickers / blinks!
+    if (waStatusActive && !waHideTimer) {
+      waHideTimer = setTimeout(() => {
+        const recheck = getActiveWhatsAppMedia();
+        if (!recheck) {
           waStatusActive = false;
           waStatusMedia = null;
           if (snifferButton && !snifferButton.dataset.customPositioned) {
             snifferButton.style.display = 'none';
           }
         }
-        waHideDebounceTimer = null;
-      }, 1400); // 1.4s debounce completely eliminates slide transition blinking
+        waHideTimer = null;
+      }, 2500);
     }
   };
 
-  updateWhatsAppStatusState();
-  setInterval(updateWhatsAppStatusState, 600);
+  const scheduleUpdate = () => {
+    if (waUpdateScheduled) return;
+    waUpdateScheduled = true;
+    requestAnimationFrame(() => {
+      waUpdateScheduled = false;
+      updateWhatsAppStatusState();
+    });
+  };
 
-  // Instant response on lightbox open / close
+  updateWhatsAppStatusState();
+  setInterval(scheduleUpdate, 600);
+
+  // Smooth throttled response on lightbox / slide DOM changes
   const mo = new MutationObserver(() => {
-    updateWhatsAppStatusState();
+    scheduleUpdate();
   });
   mo.observe(document.body, { childList: true, subtree: true });
 }
@@ -1005,8 +1001,9 @@ async function downloadCurrentWhatsAppStatus() {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
   const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-  const cleanContact = contact ? contact.replace(/[\\/:*?"<>|]/g, '').trim() : 'Contact';
-  const filename = `WhatsApp_Status_${cleanContact}_${dateStr}_${timeStr}.${media.ext}`;
+  const cleanContact = contact ? contact.replace(/[\\/:*?"<>|\x00-\x1F\x7F]/g, '_').trim() : 'Contact';
+  let filename = `WhatsApp_Status_${cleanContact}_${dateStr}_${timeStr}.${media.ext}`;
+  filename = filename.replace(/[\\/:*?"<>|\x00-\x1F\x7F]/g, '_').trim();
 
   if (label) {
     label.textContent = 'Saving to NIKA... ⏳';
@@ -1097,13 +1094,14 @@ async function triggerDownload(item) {
   let cleanTitle = item.title;
   if (!cleanTitle) {
     cleanTitle = document.title.replace(/\s*-\s*YouTube$/i, '').trim();
-    cleanTitle = cleanTitle.replace(/[\\/:*?"<>|]/g, '').trim() || 'video';
   }
+  cleanTitle = cleanTitle.replace(/[\\/:*?"<>|\x00-\x1F\x7F]/g, '_').trim() || 'video';
 
   const ext = item.ext || (item.contentType?.includes('audio') ? 'm4a' : (item.contentType?.includes('webm') ? 'webm' : (item.type === 'image' ? 'jpg' : 'mp4')));
   const dotExt = ext.startsWith('.') ? ext : `.${ext}`;
   const qualityTag = item.quality && !item.quality.includes('Auto') && !item.quality.includes('Status') ? ` [${item.quality.replace(/\s+/g, '')}]` : '';
-  const filename = item.filename || `${cleanTitle}${qualityTag}${dotExt}`;
+  let filename = item.filename || `${cleanTitle}${qualityTag}${dotExt}`;
+  filename = filename.replace(/[\\/:*?"<>|\x00-\x1F\x7F]/g, '_').trim();
 
   const isYouTube = window.location.hostname.includes('youtube.com') || (typeof item.url === 'string' && item.url.includes('googlevideo.com'));
 

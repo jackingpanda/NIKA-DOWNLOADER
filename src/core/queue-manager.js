@@ -6,6 +6,7 @@ import { ReaDownloader } from './downloader.js';
 import { StateStore } from './state-store.js';
 import { SpeedLimiter } from './speed-limiter.js';
 import { probeUrl } from './probe.js';
+import { sanitizeFilename } from './storage.js';
 
 const EXTENSION_CATEGORIES = {
   Videos: ['.mp4', '.mkv', '.webm', '.avi', '.flv', '.mov', '.wmv', '.ts', '.m4v', '.m3u8', '.mpd', '.3gp'],
@@ -96,8 +97,15 @@ export class QueueManager extends EventEmitter {
         percent = t.percent;
       }
 
+      const sanitizedFilename = sanitizeFilename(t.filename);
+      const destinationDir = t.destinationDir || this.defaultDownloadDir;
+      const savePath = path.join(destinationDir, sanitizedFilename);
+
       this.tasks.set(t.id, {
         ...t,
+        filename: sanitizedFilename,
+        destinationDir,
+        savePath,
         downloadedBytes,
         totalBytes,
         percent,
@@ -171,6 +179,7 @@ export class QueueManager extends EventEmitter {
       }
     }
 
+    filename = sanitizeFilename(filename);
     const category = detectCategory(filename);
     const task = {
       id,
@@ -339,6 +348,8 @@ export class QueueManager extends EventEmitter {
   async _startTaskDownload(task) {
     if (this.activeDownloaders.has(task.id)) return;
 
+    task.filename = sanitizeFilename(task.filename);
+    task.savePath = path.join(task.destinationDir, task.filename);
     task.status = 'downloading';
     this.emit('task-updated', task);
 
@@ -356,7 +367,7 @@ export class QueueManager extends EventEmitter {
 
     downloader.on('probe', (probeInfo) => {
       if ((!task.filename || task.filename === 'download.bin' || task.filename.startsWith('download-') || !path.extname(task.filename) || task.filename === 'videoplayback') && probeInfo.filename && path.extname(probeInfo.filename)) {
-        task.filename = probeInfo.filename;
+        task.filename = sanitizeFilename(probeInfo.filename);
       }
       task.savePath = path.join(task.destinationDir, task.filename);
       task.category = detectCategory(task.filename);

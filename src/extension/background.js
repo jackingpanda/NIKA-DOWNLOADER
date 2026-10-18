@@ -80,6 +80,22 @@ function injectContentScriptsIntoExistingTabs() {
         target: { tabId: tab.id, allFrames: true },
         files: ['content.css']
       }).catch(() => {});
+
+      // Inject MAIN_WORLD bridges for YouTube and WhatsApp Web
+      if (tab.url?.includes('youtube.com')) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          world: 'MAIN',
+          files: ['yt-bridge.js']
+        }).catch(() => {});
+      }
+      if (tab.url?.includes('whatsapp.com')) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          world: 'MAIN',
+          files: ['wa-bridge.js']
+        }).catch(() => {});
+      }
     }
   });
 }

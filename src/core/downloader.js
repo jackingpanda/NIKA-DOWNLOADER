@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import path from 'node:path';
 import { probeUrl } from './probe.js';
 import { calculateChunks, dynamicSplitChunk } from './chunk-calculator.js';
-import { ReaStorage } from './storage.js';
+import { ReaStorage, sanitizeFilename } from './storage.js';
 import { SegmentWorker } from './segment-worker.js';
 import { SpeedLimiter } from './speed-limiter.js';
 
@@ -71,7 +71,7 @@ export class ReaDownloader extends EventEmitter {
       this.probeInfo = await probeUrl(this.url, this.options);
       this.emit('probe', this.probeInfo);
 
-      const resolvedFilename = this.options.filename || this.probeInfo.filename;
+      const resolvedFilename = sanitizeFilename(this.options.filename || this.probeInfo.filename);
       this.totalBytes = this.probeInfo.contentLength || 0;
 
       // Step 2: Initialize Storage

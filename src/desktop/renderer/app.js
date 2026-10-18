@@ -1923,7 +1923,7 @@ function updateRow(taskId) {
       };
       const statusClass = statusClasses[task.status] || 'status-paused';
       const statusLabel = statusLabels[task.status] || task.status;
-      statusCell.innerHTML = `<span class="status-pill ${statusClass}">${statusLabel}</span>`;
+      statusCell.innerHTML = `<span class="status-pill ${statusClass}" ${task.error ? `title="${escapeHtml(task.error)}"` : ''}>${statusLabel}</span>`;
     }
 
     // 7. Update Action Pause/Resume button if state changed
@@ -2043,7 +2043,7 @@ function getRowHtml(task) {
     <td class="mono-cell col-speed" style="color: var(--accent-cyan);">${task.status === 'downloading' ? formatSpeed(task.speed) : '--'}</td>
     <td class="mono-cell col-eta">${task.status === 'downloading' ? formatEta(task.eta) : '--'}</td>
     <td class="col-status">
-      <span class="status-pill ${statusClass}">${statusLabel}</span>
+      <span class="status-pill ${statusClass}" ${task.error ? `title="${escapeHtml(task.error)}"` : ''}>${statusLabel}</span>
     </td>
     <td class="col-actions">
       <div class="row-actions">

@@ -4,6 +4,7 @@ import os from 'node:os';
 import { WebSocketServer, WebSocket } from 'ws';
 import { logger } from '../core/logger.js';
 import { detectCategory } from '../core/queue-manager.js';
+import { sanitizeFilename } from '../core/storage.js';
 
 /**
  * ReaBridgeServer - IPC Bridge for Browser Extension & Desktop UI
@@ -103,6 +104,9 @@ export class ReaBridgeServer {
 
     switch (type) {
       case 'add_download': {
+        if (payload.filename) {
+          payload.filename = sanitizeFilename(payload.filename);
+        }
         const task = await this.queueManager.addTask(payload);
         ws.send(JSON.stringify({ type: 'download_added', payload: task }));
         break;
@@ -141,8 +145,9 @@ export class ReaBridgeServer {
       }
       case 'save_blob_media': {
         try {
-          const { base64Data, filename, sourceUrl, contentType } = payload;
+          let { base64Data, filename, sourceUrl, contentType } = payload;
           if (base64Data && filename) {
+            filename = sanitizeFilename(filename);
             const buffer = Buffer.from(base64Data, 'base64');
             const defaultDir = this.queueManager.defaultDownloadDir || path.join(os.homedir(), 'Downloads');
             await fs.promises.mkdir(defaultDir, { recursive: true });

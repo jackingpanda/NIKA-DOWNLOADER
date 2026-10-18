@@ -2,6 +2,49 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 /**
+ * Sanitizes a filename for cross-platform filesystem compatibility (especially Windows NTFS/FAT32).
+ * Removes illegal characters: < > : " / \ | ? * and control chars (0-31, 127).
+ * Removes trailing dots and spaces.
+ * Protects against Windows reserved device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9).
+ * Caps filename length to safe limits.
+ * @param {string} name - Raw filename
+ * @returns {string} Safe cross-platform filename
+ */
+export function sanitizeFilename(name) {
+  if (!name || typeof name !== 'string') return 'download.bin';
+
+  // Replace illegal Windows characters with underscore
+  let s = name.replace(/[<>:"/\\|?*\x00-\x1F\x7F]/g, '_').trim();
+
+  // Strip trailing dots and spaces (illegal in Windows filenames)
+  s = s.replace(/[. ]+$/, '');
+
+  if (!s) return 'download.bin';
+
+  // Separate extension from basename
+  const lastDot = s.lastIndexOf('.');
+  let ext = '';
+  let base = s;
+  if (lastDot > 0 && lastDot > s.length - 12) {
+    ext = s.slice(lastDot);
+    base = s.slice(0, lastDot).trim();
+  }
+
+  // Check for reserved Windows filenames
+  const reservedRegex = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
+  if (reservedRegex.test(base)) {
+    base = `_${base}`;
+  }
+
+  // Cap base length to 200 characters to prevent MAX_PATH overflow
+  if (base.length > 200) {
+    base = base.slice(0, 200).trim();
+  }
+
+  return (base || 'download') + ext;
+}
+
+/**
  * Storage manager that handles sparse pre-allocation, concurrent offset writes,
  * and state metadata persistence.
  */
@@ -13,9 +56,9 @@ export class ReaStorage {
    */
   constructor(destinationDir, filename, totalBytes) {
     this.destinationDir = destinationDir;
-    this.filename = filename;
+    this.filename = sanitizeFilename(filename);
     this.totalBytes = totalBytes;
-    this.filepath = path.join(destinationDir, filename);
+    this.filepath = path.join(destinationDir, this.filename);
     this.metaFilepath = `${this.filepath}.rea-meta`;
     this.fileHandle = null;
     this.isOpen = false;
