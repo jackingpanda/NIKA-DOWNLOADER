@@ -20,6 +20,13 @@ const api = {
   maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
   closeWindow: () => ipcRenderer.invoke('window:close'),
   isWindowMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+  minimizeCurrentWindow: () => ipcRenderer.invoke('window:minimize-current'),
+  closeCurrentWindow: () => ipcRenderer.invoke('window:close-current'),
+
+  // Standalone Download Window
+  getTask: (id) => ipcRenderer.invoke('tasks:get-task', id),
+  openDownloadWindow: (taskId) => ipcRenderer.invoke('window:open-download', taskId),
+  closeDownloadWindow: (taskId) => ipcRenderer.invoke('window:close-download', taskId),
 
   // Changelog & Release Notes
   getChangelog: () => ipcRenderer.invoke('changelog:get'),

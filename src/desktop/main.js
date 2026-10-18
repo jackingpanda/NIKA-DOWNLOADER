@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow = null;
+const downloadWindows = new Map(); // taskId -> BrowserWindow
 let tray = null;
 let queueManager = null;
 let bridgeServer = null;
@@ -108,6 +109,14 @@ async function exitApp() {
       logger.error('MAIN', `Error shutting down queue manager: ${err.message}`);
     }
   }
+
+  // Close any open standalone download status windows
+  for (const win of downloadWindows.values()) {
+    if (win && !win.isDestroyed()) {
+      try { win.destroy(); } catch {}
+    }
+  }
+  downloadWindows.clear();
 
   if (mainWindow && !mainWindow.isDestroyed()) {
     try { mainWindow.destroy(); } catch {}
@@ -260,6 +269,46 @@ function createMainWindow() {
   });
 }
 
+function openDownloadWindow(taskId) {
+  if (!taskId) return;
+
+  if (downloadWindows.has(taskId)) {
+    const existing = downloadWindows.get(taskId);
+    if (existing && !existing.isDestroyed()) {
+      if (existing.isMinimized()) existing.restore();
+      existing.show();
+      existing.focus();
+      return;
+    }
+    downloadWindows.delete(taskId);
+  }
+
+  const downloadWin = new BrowserWindow({
+    width: 740,
+    height: 540,
+    minWidth: 620,
+    minHeight: 460,
+    backgroundColor: '#0a0d14',
+    frame: false,
+    title: 'Download Status - NIKA DOWNLOADER',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  downloadWin.loadFile(path.join(__dirname, 'renderer', 'download-window.html'), {
+    query: { id: taskId }
+  });
+
+  downloadWin.on('closed', () => {
+    downloadWindows.delete(taskId);
+  });
+
+  downloadWindows.set(taskId, downloadWin);
+}
+
 function createTray() {
   // Create a 16x16 icon programmatically if file not found
   const iconCanvas = Buffer.from(
@@ -383,15 +432,24 @@ function setupIpcHandlers() {
   });
 
   // Window Controls
-  const handleMinimize = () => mainWindow?.minimize();
-  const handleMaximize = () => {
-    if (mainWindow?.isMaximized()) {
-      mainWindow.unmaximize();
+  const handleMinimize = (event) => {
+    const win = (event && event.sender && BrowserWindow.fromWebContents(event.sender)) || mainWindow;
+    win?.minimize();
+  };
+  const handleMaximize = (event) => {
+    const win = (event && event.sender && BrowserWindow.fromWebContents(event.sender)) || mainWindow;
+    if (win?.isMaximized()) {
+      win.unmaximize();
     } else {
-      mainWindow?.maximize();
+      win?.maximize();
     }
   };
-  const handleClose = async () => {
+  const handleClose = async (event) => {
+    const win = (event && event.sender && BrowserWindow.fromWebContents(event.sender)) || mainWindow;
+    if (win && win !== mainWindow) {
+      win.close();
+      return;
+    }
     await exitApp();
   };
 
@@ -404,7 +462,40 @@ function setupIpcHandlers() {
   ipcMain.handle('window:close', handleClose);
   ipcMain.on('window:close', handleClose);
 
-  ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() || false);
+  ipcMain.handle('window:is-maximized', (event) => {
+    const win = (event && event.sender && BrowserWindow.fromWebContents(event.sender)) || mainWindow;
+    return win?.isMaximized() || false;
+  });
+
+  // Standalone Download Window Handlers
+  ipcMain.handle('tasks:get-task', (_event, id) => {
+    return queueManager?.getTask(id) || null;
+  });
+
+  ipcMain.handle('window:open-download', (_event, taskId) => {
+    openDownloadWindow(taskId);
+    return true;
+  });
+
+  ipcMain.handle('window:close-download', (_event, taskId) => {
+    const w = downloadWindows.get(taskId);
+    if (w && !w.isDestroyed()) {
+      w.close();
+    }
+    return true;
+  });
+
+  ipcMain.handle('window:minimize-current', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win?.minimize();
+    return true;
+  });
+
+  ipcMain.handle('window:close-current', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win?.close();
+    return true;
+  });
 
   // Changelog & Release Notes
   ipcMain.handle('changelog:get', () => {
@@ -469,32 +560,46 @@ function setupIpcHandlers() {
 }
 
 function forwardQueueEvents() {
+  const broadcast = (channel, ...args) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(channel, ...args);
+    }
+    for (const win of downloadWindows.values()) {
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(channel, ...args);
+      }
+    }
+  };
+
   queueManager.on('task-added', (task) => {
-    mainWindow?.webContents.send('event:task-added', task);
+    broadcast('event:task-added', task);
     if (mainWindow && !mainWindow.isDestroyed()) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.show();
     }
+    if (task && (task.status === 'downloading' || task.status === 'probing')) {
+      openDownloadWindow(task.id);
+    }
   });
 
   queueManager.on('task-updated', (task) => {
-    mainWindow?.webContents.send('event:task-updated', task);
+    broadcast('event:task-updated', task);
   });
 
   queueManager.on('task-progress', (progress) => {
-    mainWindow?.webContents.send('event:task-progress', progress);
+    broadcast('event:task-progress', progress);
   });
 
   queueManager.on('task-completed', (task) => {
-    mainWindow?.webContents.send('event:task-completed', task);
+    broadcast('event:task-completed', task);
   });
 
   queueManager.on('task-error', (errData) => {
-    mainWindow?.webContents.send('event:task-error', errData);
+    broadcast('event:task-error', errData);
   });
 
   queueManager.on('task-removed', (info) => {
-    mainWindow?.webContents.send('event:task-removed', info);
+    broadcast('event:task-removed', info);
   });
 
   // Forward live log entries to renderer

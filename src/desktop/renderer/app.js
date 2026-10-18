@@ -936,6 +936,10 @@ async function handleAddDownloadSubmit(autoStart) {
 }
 
 function openIndividualDownloadModal(taskId) {
+  if (api?.openDownloadWindow) {
+    api.openDownloadWindow(taskId);
+    return;
+  }
   const task = tasks.get(taskId);
   if (!task) return;
   activeIndividualTaskId = taskId;
@@ -947,6 +951,9 @@ function openIndividualDownloadModal(taskId) {
 }
 
 function closeIndividualDownloadModal() {
+  if (activeIndividualTaskId && api?.closeDownloadWindow) {
+    api.closeDownloadWindow(activeIndividualTaskId);
+  }
   activeIndividualTaskId = null;
   if (modalIndividual) {
     modalIndividual.style.display = 'none';
