@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace raw screenshots with high-definition, informative production mockups for Desktop Dashboard, Multi-Quality Video Sniffer, and WhatsApp Web Status Saver
 - Rebranded entire project identity to NIKA DOWNLOADER with production-grade English documentation, custom brand emblem, and media tutorial walkthroughs
 ### Fixed
+- Restore missing isYouTube variable declaration in triggerDownload that caused silent ReferenceError crash preventing all downloads
 - Fix sniffer button capture listener intercepting and swallowing dropdown item click events on YouTube and web streams
 - Add complete YouTube itag mappings for 1440p/4K/60fps formats, DASH buffer flush on quality switch, in-page toast feedback, and fallback stream downloader
 - Fix YouTube download pipeline: add sendToDesktopAsync auto-connect retry in MV3 background, strip cross-origin session cookies for Google Video endpoints, upgrade live stream URLs in sniffer, and extract clen upfront in probeUrl

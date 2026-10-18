@@ -1105,6 +1105,8 @@ async function triggerDownload(item) {
   const qualityTag = item.quality && !item.quality.includes('Auto') && !item.quality.includes('Status') ? ` [${item.quality.replace(/\s+/g, '')}]` : '';
   const filename = item.filename || `${cleanTitle}${qualityTag}${dotExt}`;
 
+  const isYouTube = window.location.hostname.includes('youtube.com') || (typeof item.url === 'string' && item.url.includes('googlevideo.com'));
+
   let streamUrl = item.url;
   try {
     if (typeof streamUrl === 'string' && streamUrl.includes('googlevideo.com')) {
