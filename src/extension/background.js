@@ -377,6 +377,56 @@ const ITAG_MAP = {
   249: { quality: '50k', ext: 'webm', type: 'audio', label: 'Audio Opus (50 kbps)' }
 };
 
+// Canonical media key generator to deduplicate stream chunks across requests
+function getCanonicalMediaKey(urlStr, contentType = '', itag = null) {
+  if (itag) return `yt:itag:${itag}`;
+  if (!urlStr || typeof urlStr !== 'string') return '';
+  try {
+    const u = new URL(urlStr);
+    const host = u.hostname.toLowerCase();
+
+    // YouTube videoplayback
+    if (host.includes('googlevideo.com') || host.includes('youtube.com')) {
+      const itagParam = u.searchParams.get('itag');
+      if (itagParam) return `yt:itag:${itagParam}`;
+      const id = u.searchParams.get('id');
+      if (id) return `yt:id:${id}`;
+    }
+
+    // Meta CDN: Instagram / Facebook (*.fbcdn.net, *.cdninstagram.com, *.facebook.com, *.instagram.com)
+    if (host.includes('fbcdn.net') || host.includes('cdninstagram.com') || host.includes('facebook.com') || host.includes('instagram.com')) {
+      const isAudio = (contentType || '').includes('audio') || u.pathname.toLowerCase().includes('/audio');
+      return `meta:${u.pathname}:${isAudio ? 'audio' : 'video'}`;
+    }
+
+    // TikTok CDN
+    if (host.includes('tiktokcdn.com') || host.includes('byteoversea.com') || host.includes('ibytedtos.com')) {
+      return `tiktok:${u.pathname}`;
+    }
+
+    // Twitter / X CDN
+    if (host.includes('twimg.com') || host.includes('x.com')) {
+      return `twitter:${u.pathname}`;
+    }
+
+    // WhatsApp
+    if (host.includes('whatsapp.net') || host.includes('whatsapp.com')) {
+      return `wa:${u.pathname}`;
+    }
+
+    // Generic media: clean query parameters that vary across chunks (range, offset, session IDs, timestamps)
+    const sp = new URLSearchParams(u.search);
+    const volatileParams = ['bytestart', 'byteend', 'range', 'rn', '_nc_gid', 't', 'ts', '_', 'sq', 'playback_host'];
+    for (const p of volatileParams) {
+      sp.delete(p);
+    }
+    const cleanSearch = sp.toString();
+    return `generic:${u.origin}${u.pathname}${cleanSearch ? '?' + cleanSearch : ''}`;
+  } catch {
+    return urlStr;
+  }
+}
+
 chrome.webRequest.onHeadersReceived.addListener(
   (details) => {
     if (!settings.videoSnifferEnabled || details.tabId < 0) return;
@@ -390,6 +440,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 
     let contentType = '';
     let contentLength = 0;
+    let fullContentLength = 0;
 
     if (details.responseHeaders) {
       for (const h of details.responseHeaders) {
@@ -398,16 +449,24 @@ chrome.webRequest.onHeadersReceived.addListener(
           contentType = h.value.toLowerCase();
         } else if (name === 'content-length') {
           contentLength = parseInt(h.value, 10) || 0;
+        } else if (name === 'content-range') {
+          // Content-Range: bytes 0-1048575/83733220 -> extract true total file size!
+          const match = h.value.match(/bytes\s+\d+-\d+\/(\d+)/i);
+          if (match && match[1]) {
+            fullContentLength = parseInt(match[1], 10) || 0;
+          }
         }
       }
     }
+
+    const actualContentLength = fullContentLength > 0 ? fullContentLength : contentLength;
 
     // Special Handling: YouTube videoplayback streams
     if (urlLower.includes('googlevideo.com/videoplayback')) {
       try {
         const parsedUrl = new URL(details.url);
         const itag = parseInt(parsedUrl.searchParams.get('itag'), 10);
-        const clen = parseInt(parsedUrl.searchParams.get('clen'), 10) || contentLength;
+        const clen = parseInt(parsedUrl.searchParams.get('clen'), 10) || actualContentLength;
         const mime = parsedUrl.searchParams.get('mime') || contentType;
 
         // Clean range parameters to allow full stream downloading
@@ -425,6 +484,7 @@ chrome.webRequest.onHeadersReceived.addListener(
         addCapturedMedia(details.tabId, {
           url: cleanStreamUrl,
           itag,
+          canonicalKey: `yt:itag:${itag}`,
           quality: meta.quality,
           label: meta.label,
           ext: meta.ext,
@@ -454,7 +514,7 @@ chrome.webRequest.onHeadersReceived.addListener(
     }
 
     if (isMedia) {
-      if (contentLength > 0 && contentLength < 30000 && !urlLower.includes('.m3u8') && !urlLower.includes('.mpd')) {
+      if (actualContentLength > 0 && actualContentLength < 30000 && !urlLower.includes('.m3u8') && !urlLower.includes('.mpd')) {
         return;
       }
 
@@ -478,10 +538,19 @@ chrome.webRequest.onHeadersReceived.addListener(
         }
       } catch {}
 
+      const isAudio = contentType.includes('audio') || cleanUrl.includes('/audio');
+      const isMeta = urlLower.includes('fbcdn.net') || urlLower.includes('cdninstagram.com');
+      const label = isMeta ? (isAudio ? 'Audio Stream' : 'Video Stream') : (isAudio ? 'Audio Stream' : 'Video Stream');
+      const quality = isMeta ? (isAudio ? 'Audio' : 'Video') : (isAudio ? 'Audio' : 'Video');
+
       addCapturedMedia(details.tabId, {
         url: cleanUrl,
         contentType,
-        contentLength,
+        contentLength: actualContentLength,
+        label,
+        quality,
+        type: isAudio ? 'audio' : 'video',
+        ext: isAudio ? 'm4a' : 'mp4',
         timestamp: Date.now()
       });
     }
@@ -497,30 +566,32 @@ function addCapturedMedia(tabId, mediaItem) {
     tabMediaMap.set(tabId, list);
   }
 
-  // Deduplicate YouTube streams by itag or clean URL
-  if (mediaItem.isYouTube && mediaItem.itag) {
-    const idx = list.findIndex(m => m.itag === mediaItem.itag);
-    if (idx >= 0) {
-      // UPGRADE: Always update URL and contentLength when a fresh request is intercepted
-      list[idx].url = mediaItem.url;
-      if (mediaItem.contentLength) {
-        list[idx].contentLength = mediaItem.contentLength;
-      }
-      chrome.tabs.sendMessage(tabId, {
-        type: 'MEDIA_DETECTED',
-        payload: list[idx],
-        totalCount: list.length
-      }).catch(() => {});
-      return;
+  const canonicalKey = mediaItem.canonicalKey || getCanonicalMediaKey(mediaItem.url, mediaItem.contentType, mediaItem.itag);
+  mediaItem.canonicalKey = canonicalKey;
+
+  const existingIdx = list.findIndex(m => {
+    if (canonicalKey && m.canonicalKey && m.canonicalKey === canonicalKey) return true;
+    if (mediaItem.isYouTube && mediaItem.itag && m.itag) return m.itag === mediaItem.itag;
+    return m.url === mediaItem.url;
+  });
+
+  if (existingIdx >= 0) {
+    const existing = list[existingIdx];
+    // Keep URL fresh with latest tokens
+    existing.url = mediaItem.url;
+    if (mediaItem.contentLength && (!existing.contentLength || mediaItem.contentLength > existing.contentLength)) {
+      existing.contentLength = mediaItem.contentLength;
     }
-  } else {
-    const existing = list.find(m => m.url === mediaItem.url);
-    if (existing) {
-      if (mediaItem.contentLength && !existing.contentLength) {
-        existing.contentLength = mediaItem.contentLength;
-      }
-      return;
-    }
+    if (mediaItem.quality && !existing.quality) existing.quality = mediaItem.quality;
+    if (mediaItem.label && !existing.label) existing.label = mediaItem.label;
+    existing.timestamp = Date.now();
+
+    chrome.tabs.sendMessage(tabId, {
+      type: 'MEDIA_UPDATED',
+      payload: existing,
+      totalCount: list.length
+    }).catch(() => {});
+    return;
   }
 
   list.push(mediaItem);
@@ -536,6 +607,17 @@ function addCapturedMedia(tabId, mediaItem) {
 // Clean up media when tab is closed
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabMediaMap.delete(tabId);
+});
+
+// Clean up media when tab navigates or changes URL on single-page apps (Instagram, TikTok, Twitter/X)
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.url) {
+    const urlLower = changeInfo.url.toLowerCase();
+    if (urlLower.includes('instagram.com/reels/') || urlLower.includes('instagram.com/p/') ||
+        urlLower.includes('tiktok.com/') || urlLower.includes('twitter.com/') || urlLower.includes('x.com/')) {
+      tabMediaMap.delete(tabId);
+    }
+  }
 });
 
 // 3. Extension Message Dispatcher
@@ -556,6 +638,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({
         media: tabMediaMap.get(tabId) || []
       });
+      break;
+    }
+
+    case 'CLEAR_TAB_MEDIA': {
+      const tabId = payload?.tabId || sender.tab?.id;
+      if (tabId) {
+        tabMediaMap.delete(tabId);
+      }
+      sendResponse({ success: true });
       break;
     }
 

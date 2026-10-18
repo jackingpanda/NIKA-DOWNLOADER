@@ -69,42 +69,98 @@ function formatSize(bytes) {
 
 let pendingAutoDownloadQuality = null;
 
+// Canonical media key generator to deduplicate stream chunks across requests
+function getCanonicalMediaKey(urlStr, contentType = '', itag = null) {
+  if (itag) return `yt:itag:${itag}`;
+  if (!urlStr || typeof urlStr !== 'string') return '';
+  try {
+    const u = new URL(urlStr);
+    const host = u.hostname.toLowerCase();
+
+    // YouTube videoplayback
+    if (host.includes('googlevideo.com') || host.includes('youtube.com')) {
+      const itagParam = u.searchParams.get('itag');
+      if (itagParam) return `yt:itag:${itagParam}`;
+      const id = u.searchParams.get('id');
+      if (id) return `yt:id:${id}`;
+    }
+
+    // Meta CDN: Instagram / Facebook (*.fbcdn.net, *.cdninstagram.com, *.facebook.com, *.instagram.com)
+    if (host.includes('fbcdn.net') || host.includes('cdninstagram.com') || host.includes('facebook.com') || host.includes('instagram.com')) {
+      const isAudio = (contentType || '').includes('audio') || u.pathname.toLowerCase().includes('/audio');
+      return `meta:${u.pathname}:${isAudio ? 'audio' : 'video'}`;
+    }
+
+    // TikTok CDN
+    if (host.includes('tiktokcdn.com') || host.includes('byteoversea.com') || host.includes('ibytedtos.com')) {
+      return `tiktok:${u.pathname}`;
+    }
+
+    // Twitter / X CDN
+    if (host.includes('twimg.com') || host.includes('x.com')) {
+      return `twitter:${u.pathname}`;
+    }
+
+    // WhatsApp
+    if (host.includes('whatsapp.net') || host.includes('whatsapp.com')) {
+      return `wa:${u.pathname}`;
+    }
+
+    // Generic media: clean query parameters that vary across chunks (range, offset, session IDs, timestamps)
+    const sp = new URLSearchParams(u.search);
+    const volatileParams = ['bytestart', 'byteend', 'range', 'rn', '_nc_gid', 't', 'ts', '_', 'sq', 'playback_host'];
+    for (const p of volatileParams) {
+      sp.delete(p);
+    }
+    const cleanSearch = sp.toString();
+    return `generic:${u.origin}${u.pathname}${cleanSearch ? '?' + cleanSearch : ''}`;
+  } catch {
+    return urlStr;
+  }
+}
+
 // Add or update stream in capturedStreams
 function addStreamItem(item) {
   if (!item || !item.url || typeof item.url !== 'string') return;
-  // For YouTube MSE chunks or non-handled blobs, reject them. But allow WhatsApp status and media blobs!
-  if (item.url.startsWith('blob:') && !item.isBlob && !window.location.hostname.includes('whatsapp.com')) return;
+  // Strictly reject blob URLs unless on WhatsApp Web
+  if (item.url.startsWith('blob:') && !window.location.hostname.includes('whatsapp.com')) return;
   // Ignore webmanifest or non-media URLs
   if (item.url.includes('.webmanifest') || item.url.includes('manifest.json')) return;
 
+  const itemKey = item.canonicalKey || getCanonicalMediaKey(item.url, item.contentType, item.itag);
+  item.canonicalKey = itemKey;
+
   const existingIdx = capturedStreams.findIndex(s => {
-    if (item.isYouTube && item.itag && s.itag) {
-      return s.itag === item.itag;
-    }
+    const sKey = s.canonicalKey || getCanonicalMediaKey(s.url, s.contentType, s.itag);
+    if (itemKey && sKey && itemKey === sKey) return true;
+    if (item.isYouTube && item.itag && s.itag) return s.itag === item.itag;
     return s.url === item.url;
   });
 
   if (existingIdx >= 0) {
-    // CRITICAL: Always upgrade URL if the incoming item has a live googlevideo.com URL
-    if (item.url && (item.url.includes('googlevideo.com') || !capturedStreams[existingIdx].url)) {
-      capturedStreams[existingIdx].url = item.url;
+    const existing = capturedStreams[existingIdx];
+    // Always upgrade URL if the incoming item has a live URL
+    if (item.url) existing.url = item.url;
+    if (item.contentLength && (!existing.contentLength || item.contentLength > existing.contentLength)) {
+      existing.contentLength = item.contentLength;
     }
-    if (item.contentLength) {
-      capturedStreams[existingIdx].contentLength = item.contentLength;
+    if (item.quality && !existing.quality) existing.quality = item.quality;
+    if (item.label && !existing.label) existing.label = item.label;
+    if (item.title && !existing.title) existing.title = item.title;
+    if (item.contentType && !existing.contentType) existing.contentType = item.contentType;
+
+    sortCapturedStreams();
+    updateSnifferButtonBadge();
+
+    // If dropdown is open, refresh view
+    const dropdown = snifferButton?.querySelector('.rea-idm-sniffer-dropdown');
+    if (dropdown && dropdown.style.display === 'flex') {
+      renderStreamsDropdown(dropdown);
     }
-    if (item.quality && !capturedStreams[existingIdx].quality) {
-      capturedStreams[existingIdx].quality = item.quality;
-    }
-    if (item.label && !capturedStreams[existingIdx].label) {
-      capturedStreams[existingIdx].label = item.label;
-    }
-    if (item.title && !capturedStreams[existingIdx].title) {
-      capturedStreams[existingIdx].title = item.title;
-    }
-  } else {
-    capturedStreams.push(item);
+    return;
   }
 
+  capturedStreams.push(item);
   sortCapturedStreams();
   updateSnifferButtonBadge();
 
@@ -171,7 +227,7 @@ function sortCapturedStreams() {
 
 // Listen for detected media streams from background service worker
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === 'MEDIA_DETECTED') {
+  if (message.type === 'MEDIA_DETECTED' || message.type === 'MEDIA_UPDATED') {
     addStreamItem(message.payload);
   }
 });
@@ -213,6 +269,8 @@ function observeVideos() {
     window.addEventListener('yt-navigate-finish', () => {
       capturedStreams = [];
       updateSnifferButtonBadge();
+      const dropdown = snifferButton?.querySelector('.rea-idm-sniffer-dropdown');
+      if (dropdown) dropdown.style.display = 'none';
       setTimeout(() => {
         window.postMessage({ type: 'REA_IDM_QUERY_YT' }, '*');
       }, 800);
@@ -220,6 +278,60 @@ function observeVideos() {
         window.postMessage({ type: 'REA_IDM_QUERY_YT' }, '*');
       }, 2200);
     });
+  }
+
+  // SPA navigation watcher (Instagram Reels, TikTok, Twitter/X, Facebook)
+  let lastPageLocation = window.location.href;
+  function handleSpaNavigation() {
+    const current = window.location.href;
+    if (current === lastPageLocation) return;
+
+    const prev = lastPageLocation;
+    lastPageLocation = current;
+
+    const isInstagram = window.location.hostname.includes('instagram.com');
+    const isTikTok = window.location.hostname.includes('tiktok.com');
+    const isTwitter = window.location.hostname.includes('twitter.com') || window.location.hostname.includes('x.com');
+    const isFacebook = window.location.hostname.includes('facebook.com');
+
+    if (isInstagram || isTikTok || isTwitter || isFacebook) {
+      try {
+        const prevPath = new URL(prev).pathname;
+        const currPath = new URL(current).pathname;
+        if (prevPath !== currPath) {
+          capturedStreams = [];
+          updateSnifferButtonBadge();
+          const dropdown = snifferButton?.querySelector('.rea-idm-sniffer-dropdown');
+          if (dropdown) dropdown.style.display = 'none';
+          chrome.runtime.sendMessage({ type: 'CLEAR_TAB_MEDIA' }).catch(() => {});
+        }
+      } catch {
+        capturedStreams = [];
+        updateSnifferButtonBadge();
+        const dropdown = snifferButton?.querySelector('.rea-idm-sniffer-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        chrome.runtime.sendMessage({ type: 'CLEAR_TAB_MEDIA' }).catch(() => {});
+      }
+    }
+  }
+
+  try {
+    const rawPushState = history.pushState;
+    history.pushState = function(...args) {
+      const result = rawPushState.apply(this, args);
+      handleSpaNavigation();
+      return result;
+    };
+    const rawReplaceState = history.replaceState;
+    history.replaceState = function(...args) {
+      const result = rawReplaceState.apply(this, args);
+      handleSpaNavigation();
+      return result;
+    };
+    window.addEventListener('popstate', handleSpaNavigation);
+    setInterval(handleSpaNavigation, 1000);
+  } catch (e) {
+    console.warn('[REA-IDM] SPA navigation hook error:', e);
   }
 
   const videos = document.querySelectorAll('video');
@@ -279,10 +391,13 @@ function attachSnifferToVideo(video) {
     const isBlob = src.startsWith('blob:');
     if ((src.startsWith('http://') || src.startsWith('https://') || isBlob) && !src.includes('googlevideo.com')) {
       const isWA = window.location.hostname.includes('whatsapp.com');
+      // Blob URLs exist only in browser process memory. Reject them for normal sites so native engine doesn't stall.
+      if (isBlob && !isWA) return;
+
       addStreamItem({
         url: src,
-        quality: isWA ? 'WhatsApp Status' : (isBlob ? 'Blob Stream' : 'Video'),
-        label: isWA ? 'WhatsApp Status Video' : (isBlob ? 'Media Stream' : 'HTML5 Video'),
+        quality: isWA ? 'WhatsApp Status' : 'Video',
+        label: isWA ? 'WhatsApp Status Video' : 'HTML5 Video',
         ext: src.includes('.webm') ? 'webm' : 'mp4',
         type: 'video',
         contentType: 'video/mp4',
@@ -475,24 +590,25 @@ function createSnifferButton() {
 function updateSnifferButtonBadge() {
   const countEl = document.getElementById('rea-idm-stream-count');
   if (countEl) {
-    const capturedQualities = new Set(capturedStreams.map(s => s.quality));
-    const uncapturedLevels = availableLevels.filter(lvl => !capturedQualities.has(lvl.quality));
-    const total = capturedStreams.length + uncapturedLevels.length;
-    countEl.textContent = total || 1;
+    const isYouTube = window.location.hostname.includes('youtube.com');
+    if (isYouTube) {
+      const capturedQualities = new Set(capturedStreams.map(s => s.quality));
+      const uncapturedLevels = availableLevels.filter(lvl => !capturedQualities.has(lvl.quality));
+      const total = capturedStreams.length + uncapturedLevels.length;
+      countEl.textContent = total || 1;
+    } else {
+      countEl.textContent = capturedStreams.length || 1;
+    }
   }
 }
 
-function toggleDropdown(dropdown) {
-  if (dropdown.style.display === 'flex') {
-    dropdown.style.display = 'none';
-    return;
-  }
-
+function renderStreamsDropdown(dropdown) {
   dropdown.innerHTML = '';
 
   const capturedQualities = new Set(capturedStreams.map(s => s.quality));
   const uncapturedLevels = availableLevels.filter(lvl => !capturedQualities.has(lvl.quality));
-  const totalCount = capturedStreams.length + uncapturedLevels.length;
+  const isYouTube = window.location.hostname.includes('youtube.com');
+  const totalCount = isYouTube ? (capturedStreams.length + uncapturedLevels.length) : capturedStreams.length;
 
   const header = document.createElement('div');
   header.className = 'rea-idm-dropdown-header';
@@ -643,6 +759,14 @@ function toggleDropdown(dropdown) {
 
   dropdown.appendChild(listContainer);
   dropdown.style.display = 'flex';
+}
+
+function toggleDropdown(dropdown) {
+  if (dropdown.style.display === 'flex') {
+    dropdown.style.display = 'none';
+    return;
+  }
+  renderStreamsDropdown(dropdown);
 }
 
 function triggerYouTubeGearQuality(qualityLabel) {
@@ -1093,13 +1217,28 @@ async function triggerDownload(item) {
 
   let cleanTitle = item.title;
   if (!cleanTitle) {
-    cleanTitle = document.title.replace(/\s*-\s*YouTube$/i, '').trim();
+    let t = document.title || '';
+    if (t.toLowerCase() === 'instagram' && window.location.pathname.includes('/reels/')) {
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      const reelId = parts[parts.indexOf('reels') + 1] || 'reel';
+      cleanTitle = `Instagram_Reel_${reelId}`;
+    } else {
+      cleanTitle = t
+        .replace(/\s*-\s*YouTube$/i, '')
+        .replace(/\s*•\s*Instagram.*$/i, '')
+        .trim();
+      const instaMatch = cleanTitle.match(/^(.+?)\s+on\s+Instagram:\s*["']?(.+?)["']?$/i);
+      if (instaMatch) {
+        cleanTitle = `${instaMatch[1]} - ${instaMatch[2]}`;
+      }
+    }
   }
   cleanTitle = cleanTitle.replace(/[\\/:*?"<>|\x00-\x1F\x7F]/g, '_').trim() || 'video';
+  if (cleanTitle.length > 80) cleanTitle = cleanTitle.substring(0, 80).trim();
 
   const ext = item.ext || (item.contentType?.includes('audio') ? 'm4a' : (item.contentType?.includes('webm') ? 'webm' : (item.type === 'image' ? 'jpg' : 'mp4')));
   const dotExt = ext.startsWith('.') ? ext : `.${ext}`;
-  const qualityTag = item.quality && !item.quality.includes('Auto') && !item.quality.includes('Status') ? ` [${item.quality.replace(/\s+/g, '')}]` : '';
+  const qualityTag = item.quality && !item.quality.includes('Auto') && !item.quality.includes('Status') && !item.quality.includes('Video') ? ` [${item.quality.replace(/\s+/g, '')}]` : '';
   let filename = item.filename || `${cleanTitle}${qualityTag}${dotExt}`;
   filename = filename.replace(/[\\/:*?"<>|\x00-\x1F\x7F]/g, '_').trim();
 
@@ -1107,11 +1246,20 @@ async function triggerDownload(item) {
 
   let streamUrl = item.url;
   try {
-    if (typeof streamUrl === 'string' && streamUrl.includes('googlevideo.com')) {
+    if (typeof streamUrl === 'string') {
       const u = new URL(streamUrl);
-      u.searchParams.delete('range');
-      u.searchParams.delete('rn');
-      streamUrl = u.toString();
+      let changed = false;
+      if (u.searchParams.has('range') || u.searchParams.has('rn')) {
+        u.searchParams.delete('range');
+        u.searchParams.delete('rn');
+        changed = true;
+      }
+      if (u.searchParams.has('bytestart') || u.searchParams.has('byteend')) {
+        u.searchParams.delete('bytestart');
+        u.searchParams.delete('byteend');
+        changed = true;
+      }
+      if (changed) streamUrl = u.toString();
     }
   } catch {}
 

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace raw screenshots with high-definition, informative production mockups for Desktop Dashboard, Multi-Quality Video Sniffer, and WhatsApp Web Status Saver
 - Rebranded entire project identity to NIKA DOWNLOADER with production-grade English documentation, custom brand emblem, and media tutorial walkthroughs
 ### Fixed
+- Deduplicate Instagram and Meta CDN video stream chunks into single canonical entries, parse total size from Content-Range, and reset streams on SPA navigation
 - Fix download deletion by adding keyboard Delete shortcut, optimistic UI table cleanup, target resolution fallback, and emitting task-removed even for desynchronized task IDs
 - Fix video corruption on Instagram/Meta CDN by stripping bytestart/byteend partial parameters, actively verifying Range support with GET 0-0, and blocking overlapping 200 OK responses in segment workers
 - Universal cross-platform filename sanitization (sanitizeFilename) across storage, downloader, queue-manager, bridge, and extension to resolve ENOENT errors on Windows caused by forbidden characters (such as pipe | or colons in YouTube titles)
