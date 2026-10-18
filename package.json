@@ -12,6 +12,7 @@
     "desktop": "electron src/desktop/main.js",
     "extension": "node scripts/install-extension.js",
     "changelog": "node scripts/changelog.js",
+    "rollback": "node scripts/rollback.js",
     "test": "node test/test-download.js",
     "test:all": "node test/test-download.js && node test/test-queue.js && node test/test-bridge.js && node test/test-ui-functions.js && node test/test-benchmark.js"
   },

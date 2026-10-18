@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix uncatchable Undici assert(!this.paused) socket-end crash by migrating SegmentWorker to native Node HTTP/HTTPS streaming and adding main process uncaught exception guards
 - Fix row checkbox becoming unclickable and losing checked state during active download progress via persistent selection state and targeted cell updates
 ### Added
+- Automated Git and Semantic Version Rollback Manager (scripts/rollback.js, rollback.bat, and GitHub Actions workflow) with safe isolated branch, linear revert, and detached inspection modes
 - IDM-style custom right-click context menu for download items (Resume/Pause, Open File, Open Folder, Redownload, Copy URL, Clear Temp, Properties, and Delete) with smart viewport positioning
 - Automatic window layout and size persistence (width, height, coordinates, and maximized state) with multi-display bounds validation
 - Preferences & Settings modal dialog with default download directory selection, concurrency controls, and auto-clean temp cache toggle upon download deletion

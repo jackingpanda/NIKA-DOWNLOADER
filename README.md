@@ -106,13 +106,55 @@ npm run test:all
 
 ---
 
+## 🔄 Sistem Rollback & Checkpoint Versi
+
+Jika terjadi kendala pada rilis terbaru atau Anda ingin mengembalikan codebase ke versi stabil sebelumnya, REA-IDM menyediakan mekanisme rollback otomatis yang aman:
+
+### 1. Menu Interaktif 1-Klik (Windows)
+Cukup jalankan berkas batch:
+```cmd
+rollback.bat
+```
+Atau melalui npm:
+```bash
+npm run rollback
+```
+Menu interaktif di terminal akan menampilkan seluruh daftar versi/tag rilis yang tersedia, tanggal rilis, dan ringkasan fitur/perbaikannya, lalu meminta Anda memilih versi dan mode rollback yang diinginkan.
+
+### 2. Perintah CLI Langsung
+```bash
+# Menampilkan daftar checkpoint rilis
+node scripts/rollback.js list
+
+# Mode 1: Rollback Aman ke Branch Baru (Rekomendasi)
+# Membuat dan berpindah ke branch 'rollback/v1.0.0' tanpa mengganggu branch 'main'
+node scripts/rollback.js to 1.0.0
+
+# Mode 2: Linear Revert pada Branch Saat Ini
+# Memulihkan berkas ke snapshot versi target & membuat commit revert otomatis
+# (Aman di-push ke remote GitHub tanpa perlu force-push)
+node scripts/rollback.js to 1.0.0 --restore
+
+# Mode 3: Inspeksi / Pengujian Sementara (Detached HEAD)
+node scripts/rollback.js to 1.0.0 --inspect
+```
+
+### 3. GitHub Actions Automated Rollback
+Repository ini dilengkapi alur kerja manual di tab **Actions** GitHub (`.github/workflows/rollback.yml`):
+- Buka tab **Actions** -> pilih **Rollback Codebase**.
+- Klik **Run workflow**, masukkan target tag versi (misal `v1.0.0`) dan mode yang diinginkan.
+- Sistem CI GitHub Actions akan otomatis membuat branch rollback atau commit revert secara aman.
+
+---
+
 ## 📁 Struktur Berkas Proyek
 
 ```
 rea-idm/
 ├── .github/                       # GitHub Actions CI/CD & Issue Templates
 │   ├── workflows/ci.yml           # CI test pipeline (Windows & Ubuntu)
-│   └── workflows/release.yml      # Automated GitHub releases
+│   ├── workflows/release.yml      # Automated GitHub releases
+│   └── workflows/rollback.yml     # Automated workflow rollback
 ├── src/
 │   ├── core/                      # Engine Inti
 │   │   ├── probe.js               # HTTP Range & Header inspector
@@ -151,9 +193,11 @@ rea-idm/
 │   ├── test-ui-functions.js       # Tes tombol UI & batch operations
 │   └── test-benchmark.js          # Tes integritas SHA-256 & throughput
 ├── scripts/
-│   └── changelog.js               # Keep a Changelog & Semantic Version CLI
+│   ├── changelog.js               # Keep a Changelog & Semantic Version CLI
+│   └── rollback.js                # Automated Git & Version Rollback CLI
 ├── start-desktop.bat              # Launcher 1-klik Desktop GUI
 ├── start-cli.bat                  # Launcher 1-klik CLI
+├── rollback.bat                   # Launcher 1-klik Rollback Manager
 ├── install-browser-extension.bat  # Panduan instalasi extension
 ├── CHANGELOG.md                   # Riwayat rilis & perubahan
 └── LICENSE                        # MIT License

@@ -1,0 +1,84 @@
+name: Rollback Codebase
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Target version tag to roll back to (e.g., v1.0.0 or 1.0.0)'
+        required: true
+        type: string
+      rollback_mode:
+        description: 'Rollback mode'
+        required: true
+        default: 'branch'
+        type: choice
+        options:
+          - branch
+          - restore
+      reason:
+        description: 'Reason for rollback'
+        required: false
+        default: 'Manual rollback via GitHub Actions'
+        type: string
+
+jobs:
+  rollback:
+    name: Execute Rollback
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Verify Target Tag
+        id: verify_tag
+        run: |
+          TARGET="${{ inputs.target_version }}"
+          if [[ ! "$TARGET" =~ ^v ]]; then
+            TARGET="v$TARGET"
+          fi
+          echo "Target tag: $TARGET"
+          if ! git rev-parse "$TARGET" >/dev/null 2>&1; then
+            echo "Error: Tag $TARGET does not exist in repository."
+            exit 1
+          fi
+          echo "tag_name=$TARGET" >> $GITHUB_OUTPUT
+
+      - name: Execute Rollback Script
+        run: |
+          TAG="${{ steps.verify_tag.outputs.tag_name }}"
+          MODE="${{ inputs.rollback_mode }}"
+          REASON="${{ inputs.reason }}"
+
+          if [ "$MODE" = "branch" ]; then
+            node scripts/rollback.js to "$TAG" --force
+            git push origin "rollback/$TAG"
+            echo "Successfully pushed branch rollback/$TAG"
+          else
+            node scripts/rollback.js to "$TAG" --restore --force
+            git push origin "${{ github.ref_name }}"
+            echo "Successfully pushed linear revert commit to ${{ github.ref_name }}"
+          fi
+
+      - name: Rollback Summary
+        run: |
+          echo "### 🔄 Rollback Executed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Version:** \`${{ steps.verify_tag.outputs.tag_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Mode:** \`${{ inputs.rollback_mode }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Reason:** ${{ inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

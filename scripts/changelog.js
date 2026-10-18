@@ -13,6 +13,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -193,6 +194,17 @@ export function releaseVersion(newVersion) {
     extPkg.version = cleanVersion;
     fs.writeFileSync(extManifestPath, JSON.stringify(extPkg, null, 2) + '\n', 'utf8');
     console.log(`[OK] Updated extension manifest.json version to "${cleanVersion}"`);
+  }
+
+  // Attempt to create git commit & release tag checkpoint for rollbacks
+  try {
+    execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: ROOT_DIR, stdio: 'ignore' });
+    execFileSync('git', ['add', CHANGELOG_PATH, PACKAGE_PATH, extManifestPath], { cwd: ROOT_DIR, stdio: 'ignore' });
+    execFileSync('git', ['commit', '-m', `chore(release): v${cleanVersion}`], { cwd: ROOT_DIR, stdio: 'ignore' });
+    execFileSync('git', ['tag', '-a', `v${cleanVersion}`, '-m', `Release v${cleanVersion}`], { cwd: ROOT_DIR, stdio: 'ignore' });
+    console.log(`[OK] Created git checkpoint tag "v${cleanVersion}"`);
+  } catch {
+    // Git is not initialized or clean; safe to skip
   }
 }
 

@@ -128,5 +128,17 @@ REA-IDM is constructed from 4 coordinated layers:
 | `node scripts/changelog.js view` | Displays formatted changelog in terminal. |
 | `node scripts/changelog.js json` | Outputs structured JSON of releases for CI/CD. |
 | `node scripts/changelog.js add <type> "<msg>"` | Adds a new entry to `[Unreleased]`. |
-| `node scripts/changelog.js release <version>` | Cuts a new release and syncs versions across the repository. |
+| `node scripts/changelog.js release <version>` | Cuts a new release, creates Git checkpoint tag, and syncs versions. |
+| `npm run rollback` / `rollback.bat` | Interactive terminal/Windows menu to roll back to any historical release checkpoint. |
+| `node scripts/rollback.js to <version>` | Programmatic rollback (creates isolated `rollback/vX.Y.Z` branch or linear revert). |
 | `npm test` | Runs the core multi-segment download engine tests. |
+
+---
+
+## 5. Rollback Engineering Standards
+
+1. **Tag Checkpoints**: Every release cut via `node scripts/changelog.js release` MUST have a matching annotated Git tag (`vX.Y.Z`).
+2. **Safe Rollback Default**: Default rollback mode must be branch isolation (`rollback/vX.Y.Z`) to prevent accidental destruction of unreleased commits.
+3. **Linear Remote Compatibility**: When rolling back directly on `main`, use `node scripts/rollback.js to <version> --restore` which stages a clean Git revert commit and preserves linear history without requiring destructive `git push --force`.
+4. **Zero State Loss**: Uncommitted work must always be guarded. Rollbacks must halt if working tree is dirty unless explicitly forced.
+
