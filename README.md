@@ -30,25 +30,26 @@ Whether accelerating multi-gigabyte archives or sniffing 4K/1080p media streams 
 ## 📸 Visual Tour & Walkthrough
 
 ### 1. Modern Desktop Dashboard
-> Clean frameless glassmorphism interface featuring 60 FPS real-time bandwidth telemetry, active thread monitors, categorized filters, speed limiting slider, and an IDM-style right-click context menu.
+> Clean frameless glassmorphism interface featuring 60 FPS real-time bandwidth telemetry (peaking at 82+ MB/s), multi-segment active thread progress monitors, categorized filters, speed limiting slider, and an authentic IDM-style right-click context menu.
 
 <p align="center">
   <img src="assets/dashboard.png" width="95%" alt="NIKA DOWNLOADER Main Dashboard" />
 </p>
 
-### 2. Floating Video Sniffer (Browser WebExtension)
-> Detects embedded HTML5 video players and stream requests in real time. Injects a non-intrusive floating capture badge directly onto supported media elements.
+### 2. Floating Video Sniffer & Multi-Quality Stream Extractor
+> Injects a floating capture badge onto embedded HTML5 and streaming players. Powered by an in-page `MAIN_WORLD` bridge that extracts adaptive video & audio formats across resolutions (4K UHD 60fps, 1080p FHD, 720p HD, and AAC/M4A audio) with automatic session cookie forwarding to bypass CDN restrictions.
 
 <p align="center">
-  <img src="assets/extension-sniffer.png" width="95%" alt="Floating Video Sniffer on YouTube" />
+  <img src="assets/extension-sniffer.png" width="95%" alt="Floating Video Sniffer and Multi-Quality Extractor" />
 </p>
 
-### 3. Multi-Quality Stream Extractor
-> Hooks YouTube's in-page player response (`/youtubei/v1/player`) via a `MAIN_WORLD` bridge to extract combined and adaptive streams across resolutions (360p, 720p HD, 1080p FHD, 1440p 2K, and 4K Ultra HD) with one-click desktop handoff.
+### 3. WhatsApp Web Status Media Saver
+> Zero-layer obstruction architecture mounts the floating sniffer directly at the document root (`z-index: 2147483647`), completely bypassing WhatsApp Web's tap-to-pause and story-advance overlays. Extract in-memory decrypted blob media (videos and photos) in 1-click with automated contact-name file tagging.
 
 <p align="center">
-  <img src="assets/youtube-selector.png" width="95%" alt="Multi-Quality Resolution Selector" />
+  <img src="assets/whatsapp-status-saver.png" width="95%" alt="WhatsApp Web Status Media Saver" />
 </p>
+
 
 ---
 
@@ -193,9 +194,9 @@ NIKA-DOWNLOADER/
 │   └── pull_request_template.md   # Standardized PR review checklist
 ├── assets/                        # Project logos and UI showcase screenshots
 │   ├── logo.png                   # Official NIKA DOWNLOADER brand emblem
-│   ├── dashboard.png              # Main dashboard screenshot
-│   ├── extension-sniffer.png      # Floating video sniffer preview
-│   └── youtube-selector.png       # Resolution selector modal preview
+│   ├── dashboard.png              # Main dashboard showcase mockup
+│   ├── extension-sniffer.png      # Floating video sniffer & multi-quality preview
+│   └── whatsapp-status-saver.png  # WhatsApp Web Status Downloader showcase
 ├── src/
 │   ├── core/                      # High-throughput download engine
 │   │   ├── probe.js               # HTTP Range & MIME prober

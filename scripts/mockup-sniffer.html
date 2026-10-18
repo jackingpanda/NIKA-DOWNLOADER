@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NIKA Floating Video Sniffer Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: #06090e;
+      font-family: 'Outfit', sans-serif;
+      color: #f1f5f9;
+      width: 1440px;
+      height: 900px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Browser Mockup Chrome Header */
+    .browser-header {
+      height: 48px;
+      background: #0b0f17;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+    }
+    .browser-dots {
+      display: flex;
+      gap: 7px;
+    }
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+
+    .browser-url-bar {
+      flex: 1;
+      max-width: 680px;
+      height: 28px;
+      background: #111726;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 12px;
+      color: #94a3b8;
+      gap: 8px;
+    }
+    .url-lock {
+      color: #10b981;
+      width: 13px;
+      height: 13px;
+    }
+    .browser-url-bar strong {
+      color: #f8fafc;
+    }
+
+    .browser-ext-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      color: #22d3ee;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    /* Video Player Canvas Mockup */
+    .video-viewport {
+      flex: 1;
+      position: relative;
+      background: linear-gradient(135deg, #09131d 0%, #030712 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Cinematic Wallpaper Background */
+    .cinematic-bg {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 80% 25%, rgba(6, 182, 212, 0.35) 0%, transparent 45%),
+        radial-gradient(circle at 20% 70%, rgba(124, 58, 237, 0.3) 0%, transparent 55%),
+        radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 60%),
+        linear-gradient(180deg, #091322 0%, #030712 100%);
+    }
+
+    /* Center Video Title & Badge */
+    .video-hero-info {
+      position: absolute;
+      bottom: 84px;
+      left: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 2;
+    }
+    .video-hero-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 4px 16px rgba(0,0,0,0.8);
+      letter-spacing: -0.3px;
+    }
+    .video-hero-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .badge-resolution {
+      background: rgba(6, 182, 212, 0.2);
+      border: 1px solid #06b6d4;
+      color: #22d3ee;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    /* Video Player Scrubber Bar */
+    .player-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(180deg, transparent, rgba(5, 8, 15, 0.95));
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 32px 14px 32px;
+      gap: 10px;
+      z-index: 2;
+    }
+    .scrubber-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 2px;
+      position: relative;
+    }
+    .scrubber-buffered {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 65%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 2px;
+    }
+    .scrubber-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 38%;
+      height: 100%;
+      background: #06b6d4;
+      border-radius: 2px;
+      box-shadow: 0 0 10px #06b6d4;
+    }
+    .scrubber-thumb {
+      position: absolute;
+      top: -4px;
+      left: 38%;
+      width: 12px;
+      height: 12px;
+      background: #fff;
+      border: 2px solid #06b6d4;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #06b6d4;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .btn-play-pause {
+      color: #06b6d4;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* Floating NIKA Sniffer Button & Open Menu */
+    .sniffer-showcase-container {
+      position: absolute;
+      top: 32px;
+      right: 36px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .rea-idm-video-sniffer-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(11, 15, 23, 0.96);
+      backdrop-filter: blur(16px);
+      color: #fff;
+      border: 1px solid #06b6d4;
+      border-radius: 9px;
+      padding: 9px 16px;
+      font-size: 13.5px;
+      font-weight: 700;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.7), 0 0 20px rgba(6, 182, 212, 0.4);
+      user-select: none;
+    }
+    .sniffer-icon {
+      width: 17px;
+      height: 17px;
+      fill: #06b6d4;
+    }
+    .sniffer-count {
+      background: #06b6d4;
+      color: #080b11;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 12px;
+      margin-left: 4px;
+    }
+
+    /* Expanded Quality Dropdown */
+    .rea-idm-sniffer-dropdown {
+      width: 390px;
+      background: #0b0f17;
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      border-radius: 12px;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85), 0 0 24px rgba(6, 182, 212, 0.25);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .dropdown-header {
+      padding: 12px 18px;
+      background: #111726;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dropdown-header-right {
+      color: #06b6d4;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .stream-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.15s ease;
+      background: rgba(15, 23, 42, 0.4);
+    }
+    .stream-item:last-child {
+      border-bottom: none;
+    }
+    .stream-item.active-hover {
+      background: rgba(6, 182, 212, 0.12);
+    }
+
+    .stream-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+    .badge-fhd {
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.3px;
+    }
+    .badge-4k {
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    }
+    .badge-hd {
+      background: rgba(6, 182, 212, 0.2);
+      color: #22d3ee;
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge-audio {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stream-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .stream-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f8fafc;
+    }
+    .stream-size {
+      font-size: 11px;
+      color: #06b6d4;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .btn-download-stream {
+      background: #06b6d4;
+      color: #080b11;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+    }
+
+    /* Feature Highlights Callout Overlay */
+    .feature-highlights {
+      position: absolute;
+      bottom: 84px;
+      right: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 50;
+      max-width: 420px;
+    }
+    .highlight-card {
+      background: rgba(11, 15, 23, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-left: 3px solid #06b6d4;
+      padding: 10px 14px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: #cbd5e1;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    }
+    .highlight-card strong {
+      color: #f8fafc;
+      font-weight: 700;
+    }
+    .highlight-icon {
+      width: 22px;
+      height: 22px;
+      color: #06b6d4;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Browser Chrome Top Bar -->
+  <div class="browser-header">
+    <div class="browser-dots">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yellow"></div>
+      <div class="dot dot-green"></div>
+    </div>
+    <div class="browser-url-bar">
+      <svg class="url-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      <span>https://www.youtube.com/watch?v=<strong>Alps_Cinematic_4K_60FPS</strong></span>
+    </div>
+    <div class="browser-ext-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+      <span>NIKA Sniffer Active</span>
+    </div>
+  </div>
+
+  <!-- Main Video Canvas -->
+  <div class="video-viewport">
+    <div class="cinematic-bg"></div>
+
+    <div class="video-hero-info">
+      <div class="video-hero-title">The Majestic Swiss Alps in 4K UHD 60FPS HDR</div>
+      <div class="video-hero-meta">
+        <span class="badge-resolution">4K 60FPS HDR</span>
+        <span>•</span>
+        <span>Original Master Stream</span>
+        <span>•</span>
+        <span>Ultra Bitrate Audio</span>
+      </div>
+    </div>
+
+    <!-- Floating Sniffer with Active Dropdown -->
+    <div class="sniffer-showcase-container">
+      <div class="rea-idm-video-sniffer-btn">
+        <svg class="sniffer-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+        <span>Download This Video</span>
+        <span class="sniffer-count">4</span>
+      </div>
+
+      <!-- Dropdown -->
+      <div class="rea-idm-sniffer-dropdown">
+        <div class="dropdown-header">
+          <span>Available Formats (4)</span>
+          <span class="dropdown-header-right">Multi-Segment Ready</span>
+        </div>
+
+        <div class="stream-item active-hover">
+          <div class="stream-left">
+            <span class="badge-4k">4K UHD</span>
+            <div class="stream-info">
+              <span class="stream-title">WebM 2160p (3840×2160 60fps)</span>
+              <span class="stream-size">2.41 GB • High Bitrate</span>
+            </div>
+          </div>
+          <button class="btn-download-stream">Download</button>
+        </div>
+
+        <div class="stream-item">
+          <div class="stream-left">
+            <span class="badge-fhd">1080p FHD</span>
+            <div class="stream-info">
+              <span class="stream-title">MP4 1080p (1920×1080 Full HD)</span>
+              <span class="stream-size">680.4 MB • 60fps</span>
+            </div>
+          </div>
+          <button class="btn-download-stream">Download</button>
+        </div>
+
+        <div class="stream-item">
+          <div class="stream-left">
+            <span class="badge-hd">720p HD</span>
+            <div class="stream-info">
+              <span class="stream-title">MP4 720p HD (Video + Audio)</span>
+              <span class="stream-size">342.1 MB • Standard</span>
+            </div>
+          </div>
+          <button class="btn-download-stream">Download</button>
+        </div>
+
+        <div class="stream-item">
+          <div class="stream-left">
+            <span class="badge-audio">AUDIO</span>
+            <div class="stream-info">
+              <span class="stream-title">Audio M4A (128 kbps AAC)</span>
+              <span class="stream-size">48.2 MB • Lossless Audio</span>
+            </div>
+          </div>
+          <button class="btn-download-stream">Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Educational Callouts -->
+    <div class="feature-highlights">
+      <div class="highlight-card">
+        <svg class="highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+        <div><strong>Deep MAIN_WORLD Bridge:</strong> Bypasses strict YouTube CSP and captures exact encrypted audio/video stream itags directly from player responses.</div>
+      </div>
+      <div class="highlight-card">
+        <svg class="highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <div><strong>Protected Media & Session Cookies:</strong> Automatically forwards cookies, Referer, and Origin headers to the multi-threaded desktop engine.</div>
+      </div>
+    </div>
+
+    <!-- Player Controls Bar -->
+    <div class="player-controls">
+      <div class="scrubber-track">
+        <div class="scrubber-buffered"></div>
+        <div class="scrubber-progress"></div>
+        <div class="scrubber-thumb"></div>
+      </div>
+      <div class="controls-row">
+        <div class="controls-left">
+          <span class="btn-play-pause">▶</span>
+          <span>04:18 / 12:45</span>
+        </div>
+        <div class="controls-right">
+          <span>4K Ultra HD</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
