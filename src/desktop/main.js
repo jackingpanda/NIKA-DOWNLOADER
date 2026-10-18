@@ -471,6 +471,10 @@ function setupIpcHandlers() {
 function forwardQueueEvents() {
   queueManager.on('task-added', (task) => {
     mainWindow?.webContents.send('event:task-added', task);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+    }
   });
 
   queueManager.on('task-updated', (task) => {

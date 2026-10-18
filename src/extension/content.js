@@ -7,19 +7,56 @@ let snifferButton = null;
 let currentVideoElement = null;
 
 const ITAG_MAP = {
+  // Muxed Video + Audio
   18: { quality: '360p', ext: 'mp4', type: 'video', label: 'MP4 360p (Video + Audio)' },
   22: { quality: '720p HD', ext: 'mp4', type: 'video', label: 'MP4 720p HD (Video + Audio)' },
+
+  // 4K 2160p Video
+  313: { quality: '2160p 4K', ext: 'webm', type: 'video', label: 'WebM 4K 2160p Ultra HD' },
+  315: { quality: '2160p60 4K', ext: 'webm', type: 'video', label: 'WebM 4K 2160p 60fps' },
+  337: { quality: '2160p60 HDR', ext: 'webm', type: 'video', label: 'WebM 4K 2160p HDR 60fps' },
+  401: { quality: '2160p 4K', ext: 'mp4', type: 'video', label: 'MP4 4K 2160p (AV1)' },
+
+  // 1440p 2K Video
+  271: { quality: '1440p 2K', ext: 'webm', type: 'video', label: 'WebM 1440p 2K Quad HD' },
+  308: { quality: '1440p60 2K', ext: 'webm', type: 'video', label: 'WebM 1440p 2K 60fps' },
+  400: { quality: '1440p 2K', ext: 'mp4', type: 'video', label: 'MP4 1440p 2K (AV1)' },
+
+  // 1080p Full HD Video
   137: { quality: '1080p FHD', ext: 'mp4', type: 'video', label: 'MP4 1080p Full HD' },
   248: { quality: '1080p FHD', ext: 'webm', type: 'video', label: 'WebM 1080p Full HD' },
+  299: { quality: '1080p60 FHD', ext: 'mp4', type: 'video', label: 'MP4 1080p Full HD 60fps' },
+  303: { quality: '1080p60 FHD', ext: 'webm', type: 'video', label: 'WebM 1080p Full HD 60fps' },
+  399: { quality: '1080p FHD', ext: 'mp4', type: 'video', label: 'MP4 1080p Full HD (AV1)' },
+
+  // 720p HD Video
   136: { quality: '720p HD', ext: 'mp4', type: 'video', label: 'MP4 720p HD' },
   247: { quality: '720p HD', ext: 'webm', type: 'video', label: 'WebM 720p HD' },
+  298: { quality: '720p60 HD', ext: 'mp4', type: 'video', label: 'MP4 720p HD 60fps' },
+  302: { quality: '720p60 HD', ext: 'webm', type: 'video', label: 'WebM 720p HD 60fps' },
+  398: { quality: '720p HD', ext: 'mp4', type: 'video', label: 'MP4 720p HD (AV1)' },
+
+  // 480p Video
   135: { quality: '480p', ext: 'mp4', type: 'video', label: 'MP4 480p' },
   244: { quality: '480p', ext: 'webm', type: 'video', label: 'WebM 480p' },
+  397: { quality: '480p', ext: 'mp4', type: 'video', label: 'MP4 480p (AV1)' },
+
+  // 360p Video
   134: { quality: '360p', ext: 'mp4', type: 'video', label: 'MP4 360p' },
   243: { quality: '360p', ext: 'webm', type: 'video', label: 'WebM 360p' },
+  396: { quality: '360p', ext: 'mp4', type: 'video', label: 'MP4 360p (AV1)' },
+
+  // 240p & 144p Video
   133: { quality: '240p', ext: 'mp4', type: 'video', label: 'MP4 240p' },
+  242: { quality: '240p', ext: 'webm', type: 'video', label: 'WebM 240p' },
+  160: { quality: '144p', ext: 'mp4', type: 'video', label: 'MP4 144p' },
+  278: { quality: '144p', ext: 'webm', type: 'video', label: 'WebM 144p' },
+
+  // Audio Streams
   140: { quality: '128k', ext: 'm4a', type: 'audio', label: 'Audio M4A (128 kbps)' },
-  251: { quality: '160k', ext: 'webm', type: 'audio', label: 'Audio Opus (160 kbps)' }
+  251: { quality: '160k', ext: 'webm', type: 'audio', label: 'Audio Opus (160 kbps)' },
+  250: { quality: '70k', ext: 'webm', type: 'audio', label: 'Audio Opus (70 kbps)' },
+  249: { quality: '50k', ext: 'webm', type: 'audio', label: 'Audio Opus (50 kbps)' }
 };
 
 // Format bytes
@@ -72,10 +109,22 @@ function addStreamItem(item) {
   updateSnifferButtonBadge();
 
   // If user previously requested this quality via Fetch & DL, auto-trigger download
-  if (pendingAutoDownloadQuality && item.quality && (item.quality.toLowerCase().includes(pendingAutoDownloadQuality.toLowerCase()) || pendingAutoDownloadQuality.toLowerCase().includes(item.quality.toLowerCase()))) {
-    const target = item;
-    pendingAutoDownloadQuality = null;
-    triggerDownload(target);
+  if (pendingAutoDownloadQuality) {
+    const p = String(pendingAutoDownloadQuality).toLowerCase();
+    const q = String(item.quality || '').toLowerCase();
+    const l = String(item.label || '').toLowerCase();
+    const isMatch = q.includes(p) || p.includes(q) || l.includes(p) ||
+      (p.includes('1440') && (item.itag === 271 || item.itag === 308 || item.itag === 400)) ||
+      (p.includes('2160') && (item.itag === 313 || item.itag === 315 || item.itag === 337 || item.itag === 401)) ||
+      (p.includes('1080') && (item.itag === 137 || item.itag === 248 || item.itag === 299 || item.itag === 303 || item.itag === 399)) ||
+      (p.includes('720') && (item.itag === 136 || item.itag === 247 || item.itag === 298 || item.itag === 302 || item.itag === 22));
+
+    if (isMatch) {
+      const target = item;
+      pendingAutoDownloadQuality = null;
+      showNikaToast(`Captured ${item.quality || 'stream'}! Starting download...`);
+      triggerDownload(target);
+    }
   }
 
   const activeVid = document.querySelector('video') || currentVideoElement;
@@ -86,18 +135,29 @@ function addStreamItem(item) {
   }
 }
 
-// Sort streams: Combined 720p/360p first (hasAudio), then 1080p FHD, then other video, then Audio
+// Sort streams: Combined 720p/360p first (hasAudio), then 4K, 1440p, 1080p, then Audio
 function sortCapturedStreams() {
+  const getResScore = (item) => {
+    const q = (item.quality || '').toLowerCase();
+    if (q.includes('2160') || q.includes('4k')) return 260;
+    if (q.includes('1440') || q.includes('2k')) return 220;
+    if (q.includes('1080')) return 180;
+    if (q.includes('720')) return 140;
+    if (q.includes('480')) return 90;
+    if (q.includes('360')) return 60;
+    return 10;
+  };
+
   capturedStreams.sort((a, b) => {
     // 1. Muxed Video + Audio (itag 22: 720p HD, itag 18: 360p)
     const aMuxed = a.hasAudio && a.type === 'video' ? (a.itag === 22 ? 300 : 200) : 0;
     const bMuxed = b.hasAudio && b.type === 'video' ? (b.itag === 22 ? 300 : 200) : 0;
     if (aMuxed !== bMuxed) return bMuxed - aMuxed;
 
-    // 2. 1080p Full HD
-    const aFhd = a.quality?.includes('1080') ? 150 : 0;
-    const bFhd = b.quality?.includes('1080') ? 150 : 0;
-    if (aFhd !== bFhd) return bFhd - aFhd;
+    // 2. High Resolution sorting
+    const aRes = getResScore(a);
+    const bRes = getResScore(b);
+    if (aRes !== bRes) return bRes - aRes;
 
     // 3. Audio streams vs Video streams
     const aIsAudio = a.type === 'audio' || a.contentType?.includes('audio');
@@ -520,6 +580,10 @@ function toggleDropdown(dropdown) {
       const targetLabel = numMatch ? numMatch[0] : quality;
       pendingAutoDownloadQuality = targetLabel;
 
+      showNikaToast(`Switching YouTube to ${quality}... ⏳`);
+      const labelEl = snifferButton?.querySelector('.rea-idm-sniffer-label');
+      if (labelEl) labelEl.textContent = `Switching to ${quality}... ⏳`;
+
       triggerYouTubeGearQuality(targetLabel);
 
       window.postMessage({
@@ -532,6 +596,23 @@ function toggleDropdown(dropdown) {
           btn.textContent = 'Streaming... 🔄';
         }
       }, 1500);
+
+      // Safety timeout: If stream not captured within 3.5 seconds, download best available stream!
+      setTimeout(() => {
+        if (pendingAutoDownloadQuality === targetLabel) {
+          pendingAutoDownloadQuality = null;
+          if (capturedStreams.length > 0) {
+            showNikaToast(`Sending available stream (${capturedStreams[0].quality || 'HD'}) to NIKA...`);
+            triggerDownload(capturedStreams[0]);
+          } else {
+            showNikaToast(`Please play video in ${quality} for a moment to capture!`, true);
+          }
+        }
+      }, 3500);
+
+      setTimeout(() => {
+        dropdown.style.display = 'none';
+      }, 600);
     });
 
     listContainer.appendChild(item);
@@ -1014,14 +1095,16 @@ async function triggerDownload(item) {
     }
   }, (res) => {
     const label = snifferButton?.querySelector('.rea-idm-sniffer-label');
-    if (label) {
-      if (res?.success) {
-        label.textContent = 'Sent to NIKA! ✅';
-      } else {
-        label.textContent = 'Check NIKA App ⚠️';
-      }
-      setTimeout(() => { label.textContent = 'Download This Video'; }, 2500);
+    if (res?.success) {
+      if (label) label.textContent = 'Sent to NIKA! ✅';
+      showNikaToast(`Sent to NIKA: ${filename}`);
+    } else {
+      if (label) label.textContent = 'Check NIKA App ⚠️';
+      showNikaToast(`Failed to connect to NIKA. Please ensure start-desktop.bat is running.`, true);
     }
+    setTimeout(() => {
+      if (label) label.textContent = 'Download This Video';
+    }, 2500);
   });
 }
 

@@ -8,17 +8,52 @@
   window.__rea_idm_yt_bridge__ = true;
 
   const ITAG_METAS = {
+    // Muxed Video + Audio
     18: { quality: '360p', ext: 'mp4', type: 'video', label: '360p MP4 (Video + Audio)', hasAudio: true },
     22: { quality: '720p HD', ext: 'mp4', type: 'video', label: '720p HD MP4 (Video + Audio)', hasAudio: true },
+
+    // 4K 2160p Video
+    313: { quality: '2160p 4K', ext: 'webm', type: 'video', label: '2160p 4K Ultra HD (WebM)', hasAudio: false },
+    315: { quality: '2160p60 4K', ext: 'webm', type: 'video', label: '2160p 4K 60fps (WebM)', hasAudio: false },
+    337: { quality: '2160p60 HDR', ext: 'webm', type: 'video', label: '2160p 4K HDR 60fps (WebM)', hasAudio: false },
+    401: { quality: '2160p 4K', ext: 'mp4', type: 'video', label: '2160p 4K Ultra HD (MP4 AV1)', hasAudio: false },
+
+    // 1440p 2K Video
+    271: { quality: '1440p 2K', ext: 'webm', type: 'video', label: '1440p 2K Quad HD (WebM)', hasAudio: false },
+    308: { quality: '1440p60 2K', ext: 'webm', type: 'video', label: '1440p 2K 60fps (WebM)', hasAudio: false },
+    400: { quality: '1440p 2K', ext: 'mp4', type: 'video', label: '1440p 2K Quad HD (MP4 AV1)', hasAudio: false },
+
+    // 1080p Full HD Video
     137: { quality: '1080p FHD', ext: 'mp4', type: 'video', label: '1080p Full HD (MP4)', hasAudio: false },
     248: { quality: '1080p FHD', ext: 'webm', type: 'video', label: '1080p Full HD (WebM)', hasAudio: false },
+    299: { quality: '1080p60 FHD', ext: 'mp4', type: 'video', label: '1080p Full HD 60fps (MP4)', hasAudio: false },
+    303: { quality: '1080p60 FHD', ext: 'webm', type: 'video', label: '1080p Full HD 60fps (WebM)', hasAudio: false },
+    399: { quality: '1080p FHD', ext: 'mp4', type: 'video', label: '1080p Full HD (MP4 AV1)', hasAudio: false },
+
+    // 720p HD Video
     136: { quality: '720p HD', ext: 'mp4', type: 'video', label: '720p HD (MP4)', hasAudio: false },
     247: { quality: '720p HD', ext: 'webm', type: 'video', label: '720p HD (WebM)', hasAudio: false },
+    298: { quality: '720p60 HD', ext: 'mp4', type: 'video', label: '720p HD 60fps (MP4)', hasAudio: false },
+    302: { quality: '720p60 HD', ext: 'webm', type: 'video', label: '720p HD 60fps (WebM)', hasAudio: false },
+    398: { quality: '720p HD', ext: 'mp4', type: 'video', label: '720p HD (MP4 AV1)', hasAudio: false },
+
+    // 480p Video
     135: { quality: '480p', ext: 'mp4', type: 'video', label: '480p (MP4)', hasAudio: false },
     244: { quality: '480p', ext: 'webm', type: 'video', label: '480p (WebM)', hasAudio: false },
+    397: { quality: '480p', ext: 'mp4', type: 'video', label: '480p (MP4 AV1)', hasAudio: false },
+
+    // 360p Video
     134: { quality: '360p', ext: 'mp4', type: 'video', label: '360p (MP4)', hasAudio: false },
     243: { quality: '360p', ext: 'webm', type: 'video', label: '360p (WebM)', hasAudio: false },
+    396: { quality: '360p', ext: 'mp4', type: 'video', label: '360p (MP4 AV1)', hasAudio: false },
+
+    // 240p & 144p Video
     133: { quality: '240p', ext: 'mp4', type: 'video', label: '240p (MP4)', hasAudio: false },
+    242: { quality: '240p', ext: 'webm', type: 'video', label: '240p (WebM)', hasAudio: false },
+    160: { quality: '144p', ext: 'mp4', type: 'video', label: '144p (MP4)', hasAudio: false },
+    278: { quality: '144p', ext: 'webm', type: 'video', label: '144p (WebM)', hasAudio: false },
+
+    // Audio
     140: { quality: '128k', ext: 'm4a', type: 'audio', label: 'Audio M4A (128 kbps)', hasAudio: true },
     251: { quality: '160k', ext: 'webm', type: 'audio', label: 'Audio Opus (160 kbps)', hasAudio: true },
     250: { quality: '70k', ext: 'webm', type: 'audio', label: 'Audio Opus (70 kbps)', hasAudio: true },
@@ -259,6 +294,17 @@
           }
           if (typeof player.setPlaybackQuality === 'function') {
             player.setPlaybackQuality(level);
+          }
+          if (typeof player.setPreferredQuality === 'function') {
+            player.setPreferredQuality(level);
+          }
+          // Force player buffer flush so YouTube immediately requests the new quality from googlevideo.com
+          const curTime = player.getCurrentTime ? player.getCurrentTime() : 0;
+          if (typeof player.seekTo === 'function') {
+            player.seekTo(curTime, true);
+          }
+          if (typeof player.playVideo === 'function' && player.getPlayerState?.() === 2) {
+            player.playVideo();
           }
         } catch (e) {}
       }

@@ -309,19 +309,56 @@ const EXCLUDED_PATTERNS = [
 ];
 
 const ITAG_MAP = {
+  // Muxed Video + Audio
   18: { quality: '360p', ext: 'mp4', type: 'video', label: 'MP4 360p (Video + Audio)' },
   22: { quality: '720p HD', ext: 'mp4', type: 'video', label: 'MP4 720p HD (Video + Audio)' },
+
+  // 4K 2160p Video
+  313: { quality: '2160p 4K', ext: 'webm', type: 'video', label: 'WebM 4K 2160p Ultra HD' },
+  315: { quality: '2160p60 4K', ext: 'webm', type: 'video', label: 'WebM 4K 2160p 60fps' },
+  337: { quality: '2160p60 HDR', ext: 'webm', type: 'video', label: 'WebM 4K 2160p HDR 60fps' },
+  401: { quality: '2160p 4K', ext: 'mp4', type: 'video', label: 'MP4 4K 2160p (AV1)' },
+
+  // 1440p 2K Video
+  271: { quality: '1440p 2K', ext: 'webm', type: 'video', label: 'WebM 1440p 2K Quad HD' },
+  308: { quality: '1440p60 2K', ext: 'webm', type: 'video', label: 'WebM 1440p 2K 60fps' },
+  400: { quality: '1440p 2K', ext: 'mp4', type: 'video', label: 'MP4 1440p 2K (AV1)' },
+
+  // 1080p Full HD Video
   137: { quality: '1080p FHD', ext: 'mp4', type: 'video', label: 'MP4 1080p Full HD' },
   248: { quality: '1080p FHD', ext: 'webm', type: 'video', label: 'WebM 1080p Full HD' },
+  299: { quality: '1080p60 FHD', ext: 'mp4', type: 'video', label: 'MP4 1080p Full HD 60fps' },
+  303: { quality: '1080p60 FHD', ext: 'webm', type: 'video', label: 'WebM 1080p Full HD 60fps' },
+  399: { quality: '1080p FHD', ext: 'mp4', type: 'video', label: 'MP4 1080p Full HD (AV1)' },
+
+  // 720p HD Video
   136: { quality: '720p HD', ext: 'mp4', type: 'video', label: 'MP4 720p HD' },
   247: { quality: '720p HD', ext: 'webm', type: 'video', label: 'WebM 720p HD' },
+  298: { quality: '720p60 HD', ext: 'mp4', type: 'video', label: 'MP4 720p HD 60fps' },
+  302: { quality: '720p60 HD', ext: 'webm', type: 'video', label: 'WebM 720p HD 60fps' },
+  398: { quality: '720p HD', ext: 'mp4', type: 'video', label: 'MP4 720p HD (AV1)' },
+
+  // 480p Video
   135: { quality: '480p', ext: 'mp4', type: 'video', label: 'MP4 480p' },
   244: { quality: '480p', ext: 'webm', type: 'video', label: 'WebM 480p' },
+  397: { quality: '480p', ext: 'mp4', type: 'video', label: 'MP4 480p (AV1)' },
+
+  // 360p Video
   134: { quality: '360p', ext: 'mp4', type: 'video', label: 'MP4 360p' },
   243: { quality: '360p', ext: 'webm', type: 'video', label: 'WebM 360p' },
+  396: { quality: '360p', ext: 'mp4', type: 'video', label: 'MP4 360p (AV1)' },
+
+  // 240p & 144p Video
   133: { quality: '240p', ext: 'mp4', type: 'video', label: 'MP4 240p' },
+  242: { quality: '240p', ext: 'webm', type: 'video', label: 'WebM 240p' },
+  160: { quality: '144p', ext: 'mp4', type: 'video', label: 'MP4 144p' },
+  278: { quality: '144p', ext: 'webm', type: 'video', label: 'WebM 144p' },
+
+  // Audio Streams
   140: { quality: '128k', ext: 'm4a', type: 'audio', label: 'Audio M4A (128 kbps)' },
-  251: { quality: '160k', ext: 'webm', type: 'audio', label: 'Audio Opus (160 kbps)' }
+  251: { quality: '160k', ext: 'webm', type: 'audio', label: 'Audio Opus (160 kbps)' },
+  250: { quality: '70k', ext: 'webm', type: 'audio', label: 'Audio Opus (70 kbps)' },
+  249: { quality: '50k', ext: 'webm', type: 'audio', label: 'Audio Opus (50 kbps)' }
 };
 
 chrome.webRequest.onHeadersReceived.addListener(
