@@ -28,7 +28,7 @@ export class ReaBridgeServer {
 
     this.wss.on('connection', (ws) => {
       this.clients.add(ws);
-      logger.info('BRIDGE', 'WebExtension client connected to REA-IDM bridge');
+      logger.info('BRIDGE', 'WebExtension client connected to NIKA bridge');
 
       // Send initial task state
       ws.send(JSON.stringify({

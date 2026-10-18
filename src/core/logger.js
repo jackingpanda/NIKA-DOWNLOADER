@@ -25,7 +25,7 @@ class ReaLogger extends EventEmitter {
     
     // Setup log directory and file path
     this.logDir = options.logDir || path.join(process.cwd(), 'logs');
-    this.mainLogFile = path.join(this.logDir, 'rea-idm.log');
+    this.mainLogFile = path.join(this.logDir, 'nika.log');
     this.errorLogFile = path.join(this.logDir, 'error.log');
     this.isInitialized = false;
 

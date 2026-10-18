@@ -1,9 +1,9 @@
 @echo off
 setlocal
-title REA-IDM Version Rollback Manager
+title NIKA DOWNLOADER Version Rollback Manager
 
 echo ===================================================
-echo     REA-IDM Version Rollback Manager
+echo     NIKA DOWNLOADER Version Rollback Manager
 echo ===================================================
 echo.
 

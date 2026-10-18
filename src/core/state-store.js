@@ -4,7 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 
 /**
- * StateStore - Atomic file-based state persistence for REA-IDM
+ * StateStore - Atomic file-based state persistence for NIKA DOWNLOADER
  */
 export class StateStore {
   /**
@@ -14,10 +14,25 @@ export class StateStore {
     if (customPath) {
       this.filePath = customPath;
     } else {
-      const baseDir = process.env.APPDATA 
+      const nikaDir = process.env.APPDATA 
+        ? path.join(process.env.APPDATA, 'nika-downloader')
+        : path.join(os.homedir(), '.nika-downloader');
+      const legacyDir = process.env.APPDATA
         ? path.join(process.env.APPDATA, 'rea-idm')
         : path.join(os.homedir(), '.rea-idm');
-      this.filePath = path.join(baseDir, 'downloads.json');
+
+      // Auto-migrate legacy settings/downloads if present
+      try {
+        if (!fsSync.existsSync(nikaDir) && fsSync.existsSync(legacyDir)) {
+          fsSync.mkdirSync(nikaDir, { recursive: true });
+          const legacyFiles = fsSync.readdirSync(legacyDir);
+          for (const file of legacyFiles) {
+            fsSync.copyFileSync(path.join(legacyDir, file), path.join(nikaDir, file));
+          }
+        }
+      } catch {}
+
+      this.filePath = path.join(nikaDir, 'downloads.json');
     }
     this.dir = path.dirname(this.filePath);
     this.settingsPath = path.join(this.dir, 'settings.json');

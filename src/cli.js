@@ -44,7 +44,7 @@ async function main() {
   }
 
   console.log('\n========================================================');
-  console.log('   ⚡ REA-IDM — Next-Gen Multi-Segment Downloader ⚡');
+  console.log('   ⚡ NIKA DOWNLOADER — Next-Gen Multi-Segment Downloader ⚡');
   console.log('========================================================\n');
 
   if (!url) {

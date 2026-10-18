@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * REA-IDM Changelog Management System
+ * NIKA DOWNLOADER Changelog Management System
  * 
  * Provides automated parsing, entry addition, version release, and JSON export.
  * Usage:
@@ -219,7 +219,7 @@ export function printFormattedChangelog() {
   }
 
   console.log('\n' + '='.repeat(60));
-  console.log('  📜 REA-IDM — Project Changelog');
+  console.log('  📜 NIKA DOWNLOADER — Project Changelog');
   console.log('='.repeat(60) + '\n');
 
   for (const rel of releases) {
@@ -297,7 +297,7 @@ function main() {
     case 'help':
     default:
       console.log(`
-REA-IDM Changelog Management System
+NIKA DOWNLOADER Changelog Management System
 
 Commands:
   node scripts/changelog.js view               Print formatted changelog in terminal

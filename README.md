@@ -1,209 +1,273 @@
-# ⚡ REA-IDM — Next-Gen High-Performance Download Manager
+<p align="center">
+  <img src="assets/logo.png" width="160" alt="NIKA DOWNLOADER Logo" />
+</p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078D6.svg?logo=windows)](https://www.microsoft.com/windows)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-339933.svg?logo=nodedotjs)](https://nodejs.org/)
-[![Electron](https://img.shields.io/badge/Electron-44.x-47848F.svg?logo=electron)](https://www.electronjs.org/)
-[![Tests](https://img.shields.io/badge/Tests-Passing%20100%25-success.svg)](#-hasil-benchmark--pengujian-otomatis)
+<h1 align="center">NIKA DOWNLOADER</h1>
 
-**REA-IDM** adalah aplikasi pengelola unduhan (*download manager*) performa tinggi generasi baru untuk Windows yang mengadopsi prinsip arsitektur **Internet Download Manager (IDM)** hasil *reverse-engineering* dengan **REA (Reverse Engineer Anything)**, dimodernisasi menggunakan Electron, asynchronous stream pipeline, multi-segment HTTP Range partitioning, dan WebExtension Manifest V3.
+<p align="center">
+  <strong>Next-Generation High-Performance Download Manager & Browser Stream Sniffer</strong>
+</p>
 
----
-
-## 🌟 Fitur Utama
-
-### 1. 🖥️ Modern Desktop GUI & Windows Integration
-- **Glassmorphic Dark Theme**: Desain antarmuka desktop modern (`#080b11`) dengan tipografi Outfit, aksen cyan & emerald glow, dan frameless titlebar kustom.
-- **Persistent Window Layout**: Otomatis mengingat ukuran, posisi layar, dan status maximize jendela terakhir yang Anda atur dengan proteksi off-screen multi-monitor.
-- **IDM-Style Right-Click Context Menu**: Menu klik kanan lengkap untuk setiap unduhan (*Resume/Pause, Open File, Open Containing Folder, Redownload/Restart, Copy URL, Clear Temp, Properties, Delete*).
-- **IDM-Style Individual Download Dialog**: Jendela inspeksi detail per-unduhan dengan pemantau kecepatan koneksi thread, kontrol Pause/Resume, dan telemetry real-time.
-- **Multi-Segment Visualizer Bar**: Setiap unduhan memiliki bilah progress dinamis yang menampilkan koneksi segmen (chunk 1 s/d 32) secara independen.
-- **Live 60FPS Speedometer / Bandwidth Chart**: Grafik canvas interaktif real-time yang memantau throughput jaringan (MB/s) dan thread aktif.
-- **System Tray & Background Daemon**: Minimize ke tray (dekat jam Windows) dengan menu kontrol lengkap (*Show, Pause All, Resume All, Exit*).
-- **Clipboard URL Sniffer**: Otomatis mendeteksi saat pengguna menyalin URL file download di clipboard Windows dan memunculkan pop-up instan.
-- **Speed Limiter**: Pengatur batas kecepatan fleksibel langsung dari toolbar atau slider token-bucket.
-- **Clear Temp & Cache**: Pemindai storage otomatis untuk membersihkan data unduhan yang belum selesai dan metadata `.rea-meta` dari disk.
-- **Logging & Diagnostics Viewer**: In-app viewer untuk memantau log aplikasi secara real-time dengan filter level (ERROR, WARN, INFO, DEBUG), export, dan clipboard copy.
-
-### 2. ⚡ Multi-Segment Parallel Streaming Engine
-- **HTTP Range Dynamic Partitioning**: Memecah berkas menjadi 1–32 koneksi simultan (`Range: bytes=${start}-${end}`).
-- **Zero-Lag Sparse Allocation**: Menulis langsung ke posisi offset berkas target tanpa *zero-fill latency* yang membekukan disk.
-- **Auto-Resume & State Persistence**: Menggunakan berkas `.rea-meta` atomik dan database JSON lokal (`downloads.json`) untuk melanjutkan download setelah restart/jeda.
-- **Queue Scheduler & Auto-Categorization**: Manajemen antrean unduhan (maksimal koneksi bersamaan) dan pengelompokan otomatis (*Videos, Music, Compressed, Programs, Documents*).
-
-### 3. 🌐 WebExtension Integration & Floating Video Sniffer
-- **Chrome / Edge / Brave / Opera WebExtension (Manifest V3)**:
-- **Download Interceptor**: Mencegat download browser dan mengalihkannya ke REA-IDM dengan cookie autentikasi dan referer lengkap (mencegah HTTP 403 Forbidden).
-- **Floating "Download This Video" Button**: Tombol melayang di pojok pemutar video (YouTube, video HTML5, streaming web) yang mendeteksi stream HLS (`.m3u8`), DASH (`.mpd`), MP4, dan WebM secara otomatis.
-- **In-Page MAIN_WORLD Hooking**: Bypass ketat CSP YouTube untuk menangkap stream audio+video berkualitas tinggi hingga 1080p/4K.
-- **Local IPC Bridge Daemon**: Terhubung secara aman via WebSocket lokal di `ws://127.0.0.1:41719`.
+<p align="center">
+  <a href="https://github.com/jackingpanda/NIKA-DOWNLOADER/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/jackingpanda/NIKA-DOWNLOADER/ci.yml?branch=main&label=CI%20Build&logo=github&style=flat-square" alt="CI Build Status" /></a>
+  <a href="https://github.com/jackingpanda/NIKA-DOWNLOADER/releases"><img src="https://img.shields.io/github/v/release/jackingpanda/NIKA-DOWNLOADER?include_prereleases&label=Release&style=flat-square&color=06b6d4" alt="Latest Release" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License: MIT" /></a>
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Cross--Engine-success?style=flat-square" alt="Platform: Windows" />
+  <img src="https://img.shields.io/badge/Node.js-20.x%20%7C%2022.x-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js 20+" />
+  <img src="https://img.shields.io/badge/Extension-Chrome%20MV3-blueviolet?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome MV3" />
+</p>
 
 ---
 
-## 🚀 Panduan Memulai
+## ⚡ Overview
 
-### Prasyarat
-- **Node.js** >= 18.0.0
-- **npm** (bawaan Node.js)
-- **Windows 10 / 11**
+**NIKA DOWNLOADER** is an open-source, high-throughput download manager built for speed, stability, and zero-loss recovery. Inspired by the battle-tested multi-connection chunking mechanisms of classic Internet Download Manager (IDM), NIKA is re-engineered from the ground up for modern operating systems using an asynchronous Node.js streaming core, sparse disk preallocation, an Electron desktop dashboard, and a Manifest V3 browser integration bridge.
 
-### Instalasi
+Whether accelerating multi-gigabyte archives or sniffing 4K/1080p media streams directly from browser tabs, NIKA saturates your available bandwidth while maintaining strict data integrity.
+
+---
+
+## 📸 Visual Tour & Walkthrough
+
+### 1. Modern Desktop Dashboard
+> Clean frameless glassmorphism interface featuring 60 FPS real-time bandwidth telemetry, active thread monitors, categorized filters, speed limiting slider, and an IDM-style right-click context menu.
+
+<p align="center">
+  <img src="assets/dashboard.png" width="95%" alt="NIKA DOWNLOADER Main Dashboard" />
+</p>
+
+### 2. Floating Video Sniffer (Browser WebExtension)
+> Detects embedded HTML5 video players and stream requests in real time. Injects a non-intrusive floating capture badge directly onto supported media elements.
+
+<p align="center">
+  <img src="assets/extension-sniffer.png" width="95%" alt="Floating Video Sniffer on YouTube" />
+</p>
+
+### 3. Multi-Quality Stream Extractor
+> Hooks YouTube's in-page player response (`/youtubei/v1/player`) via a `MAIN_WORLD` bridge to extract combined and adaptive streams across resolutions (360p, 720p HD, 1080p FHD, 1440p 2K, and 4K Ultra HD) with one-click desktop handoff.
+
+<p align="center">
+  <img src="assets/youtube-selector.png" width="95%" alt="Multi-Quality Resolution Selector" />
+</p>
+
+---
+
+## 🚀 Key Features
+
+### 🏎️ Multi-Segment Parallel Engine
+- **Configurable HTTP Connections (1–32 Threads)**: Dynamically splits any byte-range capable remote file across worker sockets to bypass single-stream ISP or server throttling.
+- **Dynamic Chunk Re-Splitting**: Slower segments are automatically bisected in real time by faster idle threads to prevent tail latency.
+- **Sparse Disk Preallocation**: Zero-copy sparse file writes (`fs.promises.open`) eliminate file stitching overhead and disk fragmentation.
+
+### 🌐 Manifest V3 Browser Integration
+- **Universal Browser Support**: Compatible with Google Chrome, Microsoft Edge, Brave, and Opera.
+- **Bi-Directional WebSocket Bridge (`127.0.0.1:41719`)**: Instantaneous IPC communication between browser service workers and the local download engine.
+- **Full Header & Cookie Forwarding**: Automatically forwards active session cookies, Referer, and User-Agent headers to eliminate HTTP 403 Forbidden errors on protected CDNs.
+
+### 🛡️ Crash Resilience & State Recovery
+- **Atomic Progress Persistence (`.rea-meta`)**: Download offsets and segment maps are written atomically. If the system crashes, reboots, or is closed via the `[X]` button, downloads resume immediately without re-downloading finished bytes.
+- **Temp Cache Manager**: In-app tool to calculate, inspect, and purge orphaned temp files and uncompleted chunk allocations.
+
+### 📊 Real-Time Telemetry & Controls
+- **Smooth Speed Limiter**: Token-bucket algorithm enables smooth bandwidth throttling from 100 KB/s up to unlimited.
+- **Diagnostics & Log Viewer**: Live in-app log viewer with level filtering (`DEBUG`, `INFO`, `WARN`, `ERROR`), exportable to disk.
+- **Window Layout Memory**: Preserves custom window dimensions, positions, and maximized states across sessions.
+
+---
+
+## 📈 Benchmark & Integrity Verification
+
+A standardized benchmark was performed using an external OVH 10 MB test file:
+
+```
+Target File: https://proof.ovh.net/files/10Mb.dat (10,485,760 bytes)
+Run 1: Standard Single-Stream Connection
+Run 2: NIKA Multi-Segment Parallel Engine (8 Connections)
+```
+
+| Metric | Single Connection | NIKA Engine (8 Segments) | Performance Delta |
+| :--- | :---: | :---: | :---: |
+| **Duration** | `3.35s` | `2.29s` | **~1.46x Faster** |
+| **Average Speed** | `2.98 MB/s` | `4.38 MB/s` | **+47% Throughput** |
+| **SHA-256 Checksum** | `e5b844cc57f5...` | `e5b844cc57f5...` | **100% BIT-PERFECT MATCH** |
+
+> *(Test environment: Windows 11 x64, Node.js v24.19.0, OVH Cloud Test Endpoint).*
+
+---
+
+## 🛠️ Quickstart Guide
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) version **20.x** or higher.
+- [Git](https://git-scm.com/).
+
+### 1. Installation
+Clone the repository and install project dependencies:
+
 ```bash
-# Clone repository
-git clone https://github.com/username/rea-idm.git
-cd rea-idm
-
-# Install dependencies
+git clone https://github.com/jackingpanda/NIKA-DOWNLOADER.git
+cd NIKA-DOWNLOADER
 npm install
 ```
 
-### 1. Menjalankan Desktop App
-Cukup klik ganda berkas `start-desktop.bat` di folder project, atau jalankan melalui terminal:
+### 2. Launching Desktop Application
+Start the Electron desktop interface with either of the following:
 
-```bash
+```cmd
+# 1-Click Windows Batch Runner
+start-desktop.bat
+
+# Or via npm
 npm run desktop
 ```
 
-### 2. Memasang Extension ke Chrome / Edge / Brave
-1. Buka browser dan ketik alamat:
-   - Chrome: `chrome://extensions`
-   - Edge: `edge://extensions`
-   - Brave: `brave://extensions`
-2. Aktifkan **Developer mode** (toggle di pojok kanan atas).
-3. Klik tombol **Load unpacked** (*Muat ekstensi yang belum dibongkar*).
-4. Pilih folder:
-   ```
-   src/extension
-   ```
-5. Atau jalankan `install-browser-extension.bat` untuk panduan cepat.
+### 3. Launching Interactive CLI
+NIKA also provides a standalone terminal interface:
 
-### 3. Menjalankan Interactive CLI Downloader
-Untuk pengguna yang menyukai antarmuka terminal cepat:
-
-```bash
-# Menggunakan 8 koneksi paralel
-node src/cli.js https://proof.ovh.net/files/10Mb.dat
-
-# Menentukan 16 koneksi dan folder output
-node src/cli.js https://proof.ovh.net/files/100Mb.dat -c 16 -o D:\Downloads
-```
-
----
-
-## 🧪 Hasil Benchmark & Pengujian Otomatis
-
-Seluruh modul telah diuji menggunakan rangkaian pengujian otomatis (*master test suite*):
-
-```bash
-npm run test:all
-```
-
-### Hasil Uji Benchmark (Berkas 10 MB):
-- **Single Connection (Browser biasa)**: 3.27 detik (~3.06 MB/s)
-- **REA-IDM (8 Multi-Segment Connections)**: 2.29 detik (~4.38 MB/s)
-- **Integritas Data (SHA-256 Checksum)**: `e5b844cc57f57094ea4585e235f36c78c1cd222262bb89d53c94dcb4d6b3e55d` — **100% BIT-PERFECT MATCH** (Nol korupsi byte).
-- **Peningkatan Kecepatan**: **1.43x - 2.5x lebih cepat**.
-
----
-
-## 🔄 Sistem Rollback & Checkpoint Versi
-
-Jika terjadi kendala pada rilis terbaru atau Anda ingin mengembalikan codebase ke versi stabil sebelumnya, REA-IDM menyediakan mekanisme rollback otomatis yang aman:
-
-### 1. Menu Interaktif 1-Klik (Windows)
-Cukup jalankan berkas batch:
 ```cmd
-rollback.bat
+# 1-Click Windows Batch Runner
+start-cli.bat
+
+# Or direct CLI invocation
+node src/cli.js https://example.com/file.zip -c 8 -o ./downloads
 ```
-Atau melalui npm:
+
+### 4. Installing the Browser Extension
+1. Run the helper script:
+   ```cmd
+   install-browser-extension.bat
+   ```
+   *(Or run `npm run extension`)*
+2. In Google Chrome, Brave, or Microsoft Edge, open the Extensions page (`chrome://extensions` or `edge://extensions`).
+3. Toggle on **Developer mode** in the upper right corner.
+4. Click **Load unpacked** and select the folder:
+   ```
+   <repo-root>/src/extension
+   ```
+5. The NIKA Downloader icon will now appear in your browser toolbar, automatically bridging to the desktop application.
+
+---
+
+## 🔄 Automated Version Checkpoint & Rollback System
+
+NIKA includes a built-in rollback engine that safeguards production stability:
+
+### 1-Click Interactive Menu (Windows)
+Double-click `rollback.bat` or run:
 ```bash
 npm run rollback
 ```
-Menu interaktif di terminal akan menampilkan seluruh daftar versi/tag rilis yang tersedia, tanggal rilis, dan ringkasan fitur/perbaikannya, lalu meminta Anda memilih versi dan mode rollback yang diinginkan.
 
-### 2. Perintah CLI Langsung
+### Command-Line Usage
 ```bash
-# Menampilkan daftar checkpoint rilis
+# List all available tagged checkpoints
 node scripts/rollback.js list
 
-# Mode 1: Rollback Aman ke Branch Baru (Rekomendasi)
-# Membuat dan berpindah ke branch 'rollback/v1.0.0' tanpa mengganggu branch 'main'
+# Mode 1: Safe Branch Isolation (Recommended)
+# Creates and checks out branch "rollback/v1.0.0" leaving main untouched
 node scripts/rollback.js to 1.0.0
 
-# Mode 2: Linear Revert pada Branch Saat Ini
-# Memulihkan berkas ke snapshot versi target & membuat commit revert otomatis
-# (Aman di-push ke remote GitHub tanpa perlu force-push)
+# Mode 2: Linear Revert
+# Reverts working directory files to target release and creates a clean revert commit
 node scripts/rollback.js to 1.0.0 --restore
 
-# Mode 3: Inspeksi / Pengujian Sementara (Detached HEAD)
+# Mode 3: Temporary Detached Inspection
 node scripts/rollback.js to 1.0.0 --inspect
 ```
 
-### 3. GitHub Actions Automated Rollback
-Repository ini dilengkapi alur kerja manual di tab **Actions** GitHub (`.github/workflows/rollback.yml`):
-- Buka tab **Actions** -> pilih **Rollback Codebase**.
-- Klik **Run workflow**, masukkan target tag versi (misal `v1.0.0`) dan mode yang diinginkan.
-- Sistem CI GitHub Actions akan otomatis membuat branch rollback atau commit revert secara aman.
+### GitHub Actions Workflow
+You can also trigger an automated cloud rollback via the GitHub Actions tab (`.github/workflows/rollback.yml`) with on-demand branch or revert creation.
 
 ---
 
-## 📁 Struktur Berkas Proyek
+## 🗂️ Project Architecture
 
 ```
-rea-idm/
-├── .github/                       # GitHub Actions CI/CD & Issue Templates
-│   ├── workflows/ci.yml           # CI test pipeline (Windows & Ubuntu)
-│   ├── workflows/release.yml      # Automated GitHub releases
-│   └── workflows/rollback.yml     # Automated workflow rollback
+NIKA-DOWNLOADER/
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml                 # Automated unit & integration test pipeline
+│   │   ├── release.yml            # Automated GitHub Releases on tag push
+│   │   └── rollback.yml           # On-demand rollback workflow
+│   ├── ISSUE_TEMPLATE/            # Bug report and feature request templates
+│   └── pull_request_template.md   # Standardized PR review checklist
+├── assets/                        # Project logos and UI showcase screenshots
+│   ├── logo.png                   # Official NIKA DOWNLOADER brand emblem
+│   ├── dashboard.png              # Main dashboard screenshot
+│   ├── extension-sniffer.png      # Floating video sniffer preview
+│   └── youtube-selector.png       # Resolution selector modal preview
 ├── src/
-│   ├── core/                      # Engine Inti
-│   │   ├── probe.js               # HTTP Range & Header inspector
-│   │   ├── chunk-calculator.js    # Kalkulasi partisi byte & sub-split
-│   │   ├── storage.js             # Sparse allocation & offset write
-│   │   ├── segment-worker.js      # Worker download per-segmen
-│   │   ├── downloader.js          # ReaDownloader orchestrator
-│   │   ├── speed-limiter.js       # Token-bucket rate limiter
-│   │   ├── state-store.js         # Persistent store (downloads.json & window state)
-│   │   ├── logger.js              # Diagnostic logging subsystem
-│   │   └── queue-manager.js       # Concurrency scheduler & kategori
-│   ├── desktop/                   # Aplikasi Desktop Electron
-│   │   ├── main.js                # Main process, Tray, Clipboard sniffer
-│   │   ├── preload.js             # Context bridge IPC
-│   │   └── renderer/              # Antarmuka Modern GUI
-│   │       ├── index.html         # Layout dashboard & modals
-│   │       ├── app.css            # Styling glassmorphism dark mode
-│   │       └── app.js             # 60FPS canvas chart & controllers
-│   ├── bridge/                    # IPC Daemon
-│   │   └── server.js              # WebSocket bridge (127.0.0.1:41719)
-│   ├── extension/                 # WebExtension Manifest V3
-│   │   ├── manifest.json          # Manifest extension Chrome/Edge
-│   │   ├── background.js          # Interceptor & sniffer service worker
-│   │   ├── content.js             # Floating video sniffer button
+│   ├── core/                      # High-throughput download engine
+│   │   ├── probe.js               # HTTP Range & MIME prober
+│   │   ├── chunk-calculator.js    # Dynamic byte partitioning & splitting
+│   │   ├── storage.js             # Sparse disk preallocation & streaming writes
+│   │   ├── segment-worker.js      # Native Node HTTP/HTTPS chunk worker
+│   │   ├── downloader.js          # Multi-segment ReaDownloader orchestrator
+│   │   ├── speed-limiter.js       # Token-bucket bandwidth limiter
+│   │   ├── state-store.js         # Atomic JSON persistence & migration store
+│   │   ├── logger.js              # Real-time diagnostic logging subsystem
+│   │   └── queue-manager.js       # Priority task scheduler & category resolver
+│   ├── desktop/                   # Electron desktop application
+│   │   ├── main.js                # Main process, system tray, clipboard sniffer
+│   │   ├── preload.js             # ContextBridge IPC secure sandbox
+│   │   └── renderer/              # GUI Dashboard (HTML5 / Vanilla CSS / JS)
+│   ├── bridge/                    # IPC WebSocket Daemon
+│   │   └── server.js              # Port 41719 bridge for WebExtension clients
+│   ├── extension/                 # Manifest V3 browser integration
+│   │   ├── manifest.json          # Chrome / Edge / Brave extension manifest
+│   │   ├── background.js          # Service worker & download interceptor
+│   │   ├── content.js             # Floating sniffer UI injection
 │   │   ├── yt-bridge.js           # In-page MAIN_WORLD YouTube extractor
-│   │   ├── content.css            # Styling tombol melayang
-│   │   ├── popup.html             # Popup menu toolbar browser
-│   │   ├── popup.js               # Logic popup menu
-│   │   └── icons/                 # Aset icon
-│   ├── cli.js                     # Terminal interactive visualizer
-│   └── index.js                   # Public programmatic API
-├── test/                          # Rangkaian Tes Otomatis
-│   ├── test-download.js           # Tes segmentasi & core download
-│   ├── test-queue.js              # Tes antrean, limit & persistensi
-│   ├── test-bridge.js             # Tes protokol WebSocket extension
-│   ├── test-ui-functions.js       # Tes tombol UI & batch operations
-│   └── test-benchmark.js          # Tes integritas SHA-256 & throughput
+│   │   └── popup.html / popup.js  # Toolbar quick-action controller
+│   ├── cli.js                     # Standalone CLI entrypoint
+│   └── index.js                   # Programmatic library exports
+├── test/                          # Comprehensive automated test suite
+│   ├── test-download.js           # Core segmentation & chunk integrity test
+│   ├── test-queue.js              # Queue lifecycle & state persistence test
+│   ├── test-bridge.js             # WebExtension WebSocket bridge test
+│   ├── test-ui-functions.js       # UI action buttons & handlers test
+│   └── test-benchmark.js          # OVH 10 MB end-to-end benchmark suite
 ├── scripts/
-│   ├── changelog.js               # Keep a Changelog & Semantic Version CLI
-│   └── rollback.js                # Automated Git & Version Rollback CLI
-├── start-desktop.bat              # Launcher 1-klik Desktop GUI
-├── start-cli.bat                  # Launcher 1-klik CLI
-├── rollback.bat                   # Launcher 1-klik Rollback Manager
-├── install-browser-extension.bat  # Panduan instalasi extension
-├── CHANGELOG.md                   # Riwayat rilis & perubahan
-└── LICENSE                        # MIT License
+│   ├── changelog.js               # Semantic Version & Keep a Changelog manager
+│   ├── rollback.js                # Checkpoint inspection & rollback tool
+│   └── install-extension.js       # Unpacked browser extension setup guide
+├── start-desktop.bat              # 1-Click Desktop GUI runner
+├── start-cli.bat                  # 1-Click CLI runner
+├── rollback.bat                   # 1-Click Rollback menu runner
+├── install-browser-extension.bat  # 1-Click Extension setup guide
+├── CHANGELOG.md                   # Chronological version release history
+└── LICENSE                        # MIT Open Source License
 ```
 
 ---
 
-## 📄 Lisensi
-[MIT License](LICENSE) — Hak Cipta (c) 2026 REA IDM Team.
+## 🧪 Testing
+
+Run the full end-to-end automated test suite:
+
+```bash
+# Run core download test
+npm test
+
+# Run all tests (Download, Queue, WebSocket Bridge, UI Handlers, and Benchmark)
+npm run test:all
+```
+
+---
+
+## 📜 Contributing & Guidelines
+
+Contributions are welcome! Please ensure:
+1. All changes adhere to the guidelines in [AGENTS.md](AGENTS.md).
+2. Any new features or fixes are recorded into `CHANGELOG.md` via:
+   ```bash
+   node scripts/changelog.js add <added|fixed|changed> "Description of change"
+   ```
+3. All tests pass with `npm run test:all`.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.  
+Copyright &copy; 2026 **NIKA Downloader Team** ([jackingpanda](https://github.com/jackingpanda)).

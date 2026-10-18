@@ -1,9 +1,9 @@
 /**
- * REA-IDM Desktop Renderer Controller (Modernized & Polished)
+ * NIKA DOWNLOADER Desktop Renderer Controller (Modernized & Polished)
  */
 
 // Fallback mock if opened in browser for preview
-const api = window.reaIdm || {
+const api = window.nikaDownloader || window.nika || window.reaIdm || {
   getAllTasks: async () => [],
   addTask: async () => ({ id: 'mock' }),
   resumeTask: async () => {},
@@ -23,7 +23,7 @@ const api = window.reaIdm || {
   getChangelog: async () => [],
   getLogs: async () => [],
   clearLogs: async () => true,
-  getLogFilePath: async () => 'logs/rea-idm.log',
+  getLogFilePath: async () => 'logs/nika.log',
   openLogDir: async () => {},
   exportLogs: async () => {},
   getTempStats: async () => ({ totalBytes: 0, incompleteTasksCount: 0, orphanedFilesCount: 0, incompleteTasks: [], orphanedFiles: [] }),
@@ -167,33 +167,24 @@ function setupWindowControls() {
   const onMin = (e) => {
     e?.preventDefault();
     e?.stopPropagation();
-    if (window.reaIdm?.minimizeWindow) {
-      window.reaIdm.minimizeWindow();
-    } else {
-      api.minimizeWindow();
-    }
+    const invoker = window.nikaDownloader || window.reaIdm || api;
+    invoker.minimizeWindow();
   };
   btnMin?.addEventListener('click', onMin);
 
   const onMax = (e) => {
     e?.preventDefault();
     e?.stopPropagation();
-    if (window.reaIdm?.maximizeWindow) {
-      window.reaIdm.maximizeWindow();
-    } else {
-      api.maximizeWindow();
-    }
+    const invoker = window.nikaDownloader || window.reaIdm || api;
+    invoker.maximizeWindow();
   };
   btnMax?.addEventListener('click', onMax);
 
   const onClose = (e) => {
     e?.preventDefault();
     e?.stopPropagation();
-    if (window.reaIdm?.closeWindow) {
-      window.reaIdm.closeWindow();
-    } else {
-      api.closeWindow();
-    }
+    const invoker = window.nikaDownloader || window.reaIdm || api;
+    invoker.closeWindow();
   };
   btnClose?.addEventListener('click', onClose);
 

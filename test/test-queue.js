@@ -7,7 +7,7 @@ import { SpeedLimiter } from '../src/core/speed-limiter.js';
 import { StateStore } from '../src/core/state-store.js';
 
 async function runQueueTests() {
-  console.log('🧪 Starting REA-IDM Queue & Persistence Tests...\n');
+  console.log('🧪 Starting NIKA DOWNLOADER Queue & Persistence Tests...\n');
 
   // 1. Category Detection Tests
   console.log('Test 1: Category auto-detection...');
@@ -198,7 +198,7 @@ async function runQueueTests() {
     await fs.rm(path.dirname(testStorePath), { recursive: true, force: true });
   } catch {}
 
-  console.log('\n🎉 ALL REA-IDM QUEUE TESTS PASSED SUCCESSFULLY!');
+  console.log('\n🎉 ALL NIKA DOWNLOADER QUEUE TESTS PASSED SUCCESSFULLY!');
 }
 
 runQueueTests().catch(err => {

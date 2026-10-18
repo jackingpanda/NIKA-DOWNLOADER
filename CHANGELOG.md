@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the **REA-IDM** (Next-Gen Internet Download Manager) project will be documented in this file.
+All notable changes to the **NIKA DOWNLOADER** (Next-Generation High-Performance Download Manager) project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Unreleased]
+### Changed
+- Rebranded entire project identity to NIKA DOWNLOADER with production-grade English documentation, custom brand emblem, and media tutorial walkthroughs
 ### Fixed
 - Fix titlebar brand version displaying Electron runtime version (v44.9.0) instead of package.json release version
 - Fix progress loss and reset to 0 B/Queued on window close [X] by implementing graceful queue shutdown, periodic progress auto-persistence, and disk chunk state recovery

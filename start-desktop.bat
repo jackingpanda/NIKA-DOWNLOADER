@@ -1,6 +1,6 @@
 @echo off
-title REA-IDM Desktop Application
-echo Starting REA-IDM Next-Gen Download Manager...
+title NIKA DOWNLOADER Desktop Application
+echo Starting NIKA DOWNLOADER High-Performance Download Manager...
 cd /d "%~dp0"
 if exist "node_modules\.bin\electron.cmd" (
   call "node_modules\.bin\electron.cmd" src/desktop/main.js

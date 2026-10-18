@@ -54,7 +54,7 @@ function getAppVersion() {
 }
 
 async function initializeApp() {
-  logger.info('MAIN', `Starting REA-IDM Desktop v${getAppVersion()}...`);
+  logger.info('MAIN', `Starting NIKA DOWNLOADER Desktop v${getAppVersion()}...`);
 
   // Initialize Core Queue Manager & Bridge Server
   queueManager = new QueueManager();
@@ -268,10 +268,10 @@ function createTray() {
   );
   const trayIcon = nativeImage.createFromBuffer(iconCanvas);
   tray = new Tray(trayIcon);
-  tray.setToolTip('REA-IDM (Internet Download Manager)');
+  tray.setToolTip('NIKA DOWNLOADER (High-Performance Download Manager)');
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Show REA-IDM', click: () => { mainWindow?.show(); mainWindow?.focus(); } },
+    { label: 'Show NIKA DOWNLOADER', click: () => { mainWindow?.show(); mainWindow?.focus(); } },
     { type: 'separator' },
     { label: 'Pause All', click: () => queueManager?.pauseAll() },
     { label: 'Resume All', click: () => queueManager?.resumeAll() },
@@ -435,9 +435,9 @@ function setupIpcHandlers() {
   });
 
   ipcMain.handle('logs:export', async () => {
-    const defaultExportPath = path.join(app.getPath('downloads'), `rea-idm-logs-${Date.now()}.txt`);
+    const defaultExportPath = path.join(app.getPath('downloads'), `nika-logs-${Date.now()}.txt`);
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
-      title: 'Export REA-IDM Diagnostic Logs',
+      title: 'Export NIKA Diagnostic Logs',
       defaultPath: defaultExportPath,
       filters: [{ name: 'Log Files (*.txt, *.log)', extensions: ['txt', 'log'] }]
     });

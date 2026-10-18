@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('reaIdm', {
+const api = {
   getAllTasks: () => ipcRenderer.invoke('tasks:get-all'),
   addTask: (options) => ipcRenderer.invoke('tasks:add', options),
   resumeTask: (id) => ipcRenderer.invoke('tasks:resume', id),
@@ -83,4 +83,8 @@ contextBridge.exposeInMainWorld('reaIdm', {
     ipcRenderer.on('event:window-maximized-state', handler);
     return () => ipcRenderer.removeListener('event:window-maximized-state', handler);
   }
-});
+};
+
+contextBridge.exposeInMainWorld('nikaDownloader', api);
+contextBridge.exposeInMainWorld('nika', api);
+contextBridge.exposeInMainWorld('reaIdm', api);

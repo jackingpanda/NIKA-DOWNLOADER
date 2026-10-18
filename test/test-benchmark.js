@@ -11,7 +11,7 @@ async function calculateFileSha256(filePath) {
 
 async function runBenchmark() {
   console.log('='.repeat(65));
-  console.log('  ⚡ REA-IDM Phase 5 End-to-End Benchmark & Integrity Suite');
+  console.log('  ⚡ NIKA DOWNLOADER Phase 5 End-to-End Benchmark & Integrity Suite');
   console.log('='.repeat(65));
 
   const testDir = path.join(os.tmpdir(), `rea-benchmark-${Date.now()}`);
@@ -41,7 +41,7 @@ async function runBenchmark() {
   console.log(`  ⏱️ Duration: ${durationSingle.toFixed(2)}s | Speed: ${speed1.toFixed(2)} MB/s`);
   console.log(`  🔐 SHA-256: ${hash1}`);
 
-  // Run 2: Multi-Segment (8 Connections - REA-IDM Engine)
+  // Run 2: Multi-Segment (8 Connections - NIKA Engine)
   console.log('\n⚡ [Run 2] Multi-Segment Parallel (8 Range Connections)...');
   const startMulti = Date.now();
   const downloader8 = new ReaDownloader(testUrl, {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * REA-IDM Automated Rollback Manager
+ * NIKA DOWNLOADER Automated Rollback Manager
  * 
  * Safely rolls back the codebase to any previous version or git release tag.
  * 
@@ -234,7 +234,7 @@ export function printAvailableCheckpoints() {
   const checkpoints = getAvailableCheckpoints();
   
   console.log('\n' + '='.repeat(68));
-  console.log('  🎯 REA-IDM — Available Version Checkpoints & Rollback Targets');
+  console.log('  🎯 NIKA DOWNLOADER — Available Version Checkpoints & Rollback Targets');
   console.log('='.repeat(68) + '\n');
 
   if (checkpoints.length === 0) {
@@ -369,7 +369,7 @@ async function main() {
   }
 
   console.log(`
-REA-IDM Rollback Manager
+NIKA DOWNLOADER Rollback Manager
 
 Commands:
   node scripts/rollback.js                     Launch interactive rollback selector

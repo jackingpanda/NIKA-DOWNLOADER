@@ -1,6 +1,6 @@
-# AGENTS.md — REA-IDM Project Operating Guidelines & Standards
+# AGENTS.md — NIKA DOWNLOADER Operating Guidelines & Standards
 
-Welcome to **REA-IDM** (Next-Generation Internet Download Manager). This document sets the mandatory engineering operating procedures, architectural standards, and automated maintenance workflows for all AI coding agents, contributors, and project maintainers.
+Welcome to **NIKA DOWNLOADER** (Next-Generation High-Performance Download Manager). This document sets the mandatory engineering operating procedures, architectural standards, and automated maintenance workflows for all AI coding agents, contributors, and project maintainers.
 
 ---
 
@@ -50,9 +50,9 @@ Welcome to **REA-IDM** (Next-Generation Internet Download Manager). This documen
 
 ---
 
-## 2. REA-IDM Architecture & System Overview
+## 2. NIKA DOWNLOADER Architecture & System Overview
 
-REA-IDM is constructed from 4 coordinated layers:
+NIKA DOWNLOADER is constructed from 4 coordinated layers:
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -122,7 +122,7 @@ REA-IDM is constructed from 4 coordinated layers:
 
 | Command | Description |
 | :--- | :--- |
-| `npm run desktop` / `start-desktop.bat` | Launches the REA-IDM Electron Desktop Application. |
+| `npm run desktop` / `start-desktop.bat` | Launches the NIKA DOWNLOADER Electron Desktop Application. |
 | `npm run start` / `start-cli.bat` | Launches the interactive CLI interface. |
 | `npm run extension` | Installs / checks the unpacked browser extension. |
 | `node scripts/changelog.js view` | Displays formatted changelog in terminal. |

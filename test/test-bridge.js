@@ -7,7 +7,7 @@ import { QueueManager } from '../src/core/queue-manager.js';
 import { ReaBridgeServer } from '../src/bridge/server.js';
 
 async function runBridgeTests() {
-  console.log('🧪 Starting REA-IDM Phase 4 IPC Bridge & Protocol Tests...\n');
+  console.log('🧪 Starting NIKA DOWNLOADER Phase 4 IPC Bridge & Protocol Tests...\n');
 
   const testStorePath = path.join(os.tmpdir(), `rea-bridge-test-${Date.now()}`, 'downloads.json');
   const qm = new QueueManager({
