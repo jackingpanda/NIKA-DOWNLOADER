@@ -113,6 +113,21 @@ async function runTests() {
   assert.strictEqual(sanitizeFilename(reservedDevice), '_con.mp4');
   console.log('✅ Cross-Platform Filename Sanitization: PASS');
 
+  console.log('\n--- [Test 7] Testing Media Stream URL Sanitization (Instagram/Meta bytestart & YouTube range stripping) ---');
+  const { cleanMediaStreamUrl } = await import('../src/core/probe.js');
+  const dirtyInstagramUrl = 'https://instagram.fkno13-1.fna.fbcdn.net/o1/v/t2/f2/m78/video.mp4?_nc_cat=101&bytestart=918&byteend=1821422&oe=6AD6AB7E';
+  const cleanInstagramUrl = cleanMediaStreamUrl(dirtyInstagramUrl);
+  assert.strictEqual(cleanInstagramUrl.includes('bytestart'), false, 'bytestart parameter must be removed');
+  assert.strictEqual(cleanInstagramUrl.includes('byteend'), false, 'byteend parameter must be removed');
+  assert.strictEqual(cleanInstagramUrl.includes('oe=6AD6AB7E'), true, 'Authentication token must be preserved');
+
+  const dirtyYoutubeRangeUrl = 'https://rr9---sn-pjvo2aopq-230e.googlevideo.com/videoplayback?itag=136&range=0-1000000&rn=1&clen=83733220';
+  const cleanYoutubeRangeUrl = cleanMediaStreamUrl(dirtyYoutubeRangeUrl);
+  assert.strictEqual(cleanYoutubeRangeUrl.includes('range='), false, 'range parameter must be removed');
+  assert.strictEqual(cleanYoutubeRangeUrl.includes('rn='), false, 'rn parameter must be removed');
+  assert.strictEqual(cleanYoutubeRangeUrl.includes('clen='), true, 'clen parameter must be preserved');
+  console.log('✅ Media Stream URL Sanitization: PASS');
+
   console.log('\n🎉 ALL PHASE 1 CORE TESTS PASSED SUCCESSFULLY!\n');
 }
 

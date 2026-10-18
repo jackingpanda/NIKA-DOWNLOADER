@@ -52,6 +52,38 @@ export function parseContentDispositionFilename(disposition) {
 }
 
 /**
+ * Strips partial stream chunk query parameters (e.g. bytestart/byteend for Meta/FB CDN, range/rn for YouTube)
+ * to guarantee that downloads fetch the full media file with intact file type (ftyp) headers.
+ * @param {string} rawUrl 
+ * @returns {string} Cleaned full-stream URL
+ */
+export function cleanMediaStreamUrl(rawUrl) {
+  if (typeof rawUrl !== 'string') return rawUrl;
+  try {
+    const u = new URL(rawUrl);
+    let changed = false;
+
+    // Meta / Instagram / Facebook CDN DASH fragment parameters
+    if (u.searchParams.has('bytestart') || u.searchParams.has('byteend')) {
+      u.searchParams.delete('bytestart');
+      u.searchParams.delete('byteend');
+      changed = true;
+    }
+
+    // YouTube videoplayback range parameters
+    if (u.searchParams.has('range') || u.searchParams.has('rn')) {
+      u.searchParams.delete('range');
+      u.searchParams.delete('rn');
+      changed = true;
+    }
+
+    return changed ? u.toString() : rawUrl;
+  } catch {
+    return rawUrl;
+  }
+}
+
+/**
  * Probes a remote URL to test Range support, content length, and file metadata
  * @param {string} url - Target download URL
  * @param {Object} [options={}] - Custom headers, cookies, user-agent
@@ -62,6 +94,7 @@ export async function probeUrl(url, options = {}) {
     throw new Error('Blob URLs exist only in browser process memory and cannot be downloaded directly.');
   }
 
+  url = cleanMediaStreamUrl(url);
   const isGoogleVideo = typeof url === 'string' && (url.includes('googlevideo.com') || url.includes('youtube.com'));
 
   const headers = {
@@ -129,22 +162,18 @@ export async function probeUrl(url, options = {}) {
     contentType = response.headers.get('content-type') || contentType;
     etag = response.headers.get('etag');
     lastModified = response.headers.get('last-modified');
-    const acceptRanges = response.headers.get('accept-ranges');
     const cl = response.headers.get('content-length');
     if (cl) {
       contentLength = parseInt(cl, 10);
     }
     const disposition = response.headers.get('content-disposition');
     filename = parseContentDispositionFilename(disposition);
-
-    if (acceptRanges === 'bytes') {
-      supportsRange = true;
-    }
   }
 
-  // Step 2: If Range support or Content-Length was not verified by HEAD,
-  // do a lightweight GET request with Range: bytes=0-0
-  if (!supportsRange || contentLength === null || isNaN(contentLength)) {
+  // Step 2: Actively verify Range support with a lightweight GET Range: bytes=0-0 request.
+  // CRITICAL: We do not blindly trust 'accept-ranges: bytes' from HEAD because CDNs like Facebook/Meta
+  // or signed URLs often output accept-ranges on HEAD but return 200 OK (ignoring Range) on GET.
+  if (!isGoogleVideo) {
     try {
       const rangeCheckHeaders = {
         ...headers,
@@ -170,7 +199,7 @@ export async function probeUrl(url, options = {}) {
           }
         }
       } else if (rangeResponse.status === 200) {
-        // Server ignored Range header and returned full content
+        // Server ignored Range header and returned full content: multi-segment is NOT supported
         supportsRange = false;
         const cl = rangeResponse.headers.get('content-length');
         if (cl) {

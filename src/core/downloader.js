@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import path from 'node:path';
-import { probeUrl } from './probe.js';
+import { probeUrl, cleanMediaStreamUrl } from './probe.js';
 import { calculateChunks, dynamicSplitChunk } from './chunk-calculator.js';
 import { ReaStorage, sanitizeFilename } from './storage.js';
 import { SegmentWorker } from './segment-worker.js';
@@ -25,7 +25,7 @@ export class ReaDownloader extends EventEmitter {
    */
   constructor(url, options = {}) {
     super();
-    this.url = url;
+    this.url = cleanMediaStreamUrl(url);
     this.options = {
       destinationDir: options.destinationDir || process.cwd(),
       connections: Math.min(Math.max(1, options.connections || 8), 32),

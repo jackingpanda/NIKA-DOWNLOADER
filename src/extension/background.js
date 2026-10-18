@@ -458,8 +458,28 @@ chrome.webRequest.onHeadersReceived.addListener(
         return;
       }
 
+      // Clean range parameters (e.g. bytestart/byteend for Meta/Instagram/Facebook CDN, or range/rn)
+      let cleanUrl = details.url;
+      try {
+        const u = new URL(details.url);
+        let changed = false;
+        if (u.searchParams.has('bytestart') || u.searchParams.has('byteend')) {
+          u.searchParams.delete('bytestart');
+          u.searchParams.delete('byteend');
+          changed = true;
+        }
+        if (u.searchParams.has('range') || u.searchParams.has('rn')) {
+          u.searchParams.delete('range');
+          u.searchParams.delete('rn');
+          changed = true;
+        }
+        if (changed) {
+          cleanUrl = u.toString();
+        }
+      } catch {}
+
       addCapturedMedia(details.tabId, {
-        url: details.url,
+        url: cleanUrl,
         contentType,
         contentLength,
         timestamp: Date.now()

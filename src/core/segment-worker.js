@@ -169,7 +169,15 @@ export class SegmentWorker {
       signal
     });
 
-    // Check status code: 206 (Partial Content) or 200 (OK for single chunk)
+    // CRITICAL CORRUPTION GUARD:
+    // If this worker requested a range beyond byte 0 (startByte > 0), the server MUST return 206 Partial Content.
+    // If the server returns 200 OK, it sent the full payload from byte 0. Writing that at an offset > 0 corrupts the file!
+    if (this.chunk.startByte > 0 && res.statusCode === 200) {
+      res.resume(); // drain
+      throw new Error(`Server returned HTTP 200 instead of 206 Partial Content for chunk #${this.chunk.id} (Range header not honored by server)`);
+    }
+
+    // Check status code: 206 (Partial Content) or 200 (OK for chunk #0 or single stream)
     if (res.statusCode !== 200 && res.statusCode !== 206) {
       res.resume(); // drain
       throw new Error(`HTTP Error ${res.statusCode}: ${res.statusMessage || 'Request Failed'}`);
