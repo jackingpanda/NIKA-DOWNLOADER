@@ -48,6 +48,16 @@
     },
     {
       "matches": [
+        "*://*.whatsapp.com/*"
+      ],
+      "js": [
+        "wa-bridge.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
         "<all_urls>"
       ],
       "js": [
@@ -64,6 +74,7 @@
     {
       "resources": [
         "yt-bridge.js",
+        "wa-bridge.js",
         "icons/*"
       ],
       "matches": [

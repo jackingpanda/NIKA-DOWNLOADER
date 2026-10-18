@@ -91,7 +91,40 @@ async function runBridgeTests() {
   assert.strictEqual(qm.globalLimiter.bytesPerSecond, 1048576);
   console.log('  ✅ Speed limit successfully applied.');
 
-  // Test 5: Clean teardown
+  // Test 5: Save blob media (WhatsApp Status / In-Memory Media)
+  console.log('Test 5: Saving blob media (WhatsApp status) to queue and disk...');
+  const testPayload = Buffer.from('TEST_WHATSAPP_STATUS_BINARY_DATA').toString('base64');
+  client.send(JSON.stringify({
+    type: 'save_blob_media',
+    payload: {
+      base64Data: testPayload,
+      filename: 'WhatsApp_Status_Test_20261018.mp4',
+      sourceUrl: 'blob:https://web.whatsapp.com/test-media-blob',
+      contentType: 'video/mp4'
+    }
+  }));
+
+  let blobSavedMsg = null;
+  for (let i = 0; i < 20; i++) {
+    blobSavedMsg = messages.find(m => m.type === 'blob_saved');
+    if (blobSavedMsg) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  assert.ok(blobSavedMsg, 'Expected blob_saved message');
+  assert.strictEqual(blobSavedMsg.payload.success, true);
+  assert.strictEqual(blobSavedMsg.payload.task.filename, 'WhatsApp_Status_Test_20261018.mp4');
+  assert.strictEqual(blobSavedMsg.payload.task.category, 'Videos');
+  assert.ok(blobSavedMsg.payload.task.savePath, 'Task must have valid savePath');
+  assert.strictEqual(blobSavedMsg.payload.task.percent, 100);
+  assert.strictEqual(blobSavedMsg.payload.task.status, 'completed');
+  console.log('  ✅ Blob media saved, category detected as Videos, task added to queue with 100% completion.');
+
+  // Clean up created test file if exists
+  try {
+    await fs.unlink(blobSavedMsg.payload.targetPath);
+  } catch {}
+
+  // Clean teardown
   client.close();
   bridge.stop();
 

@@ -475,6 +475,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'SAVE_BLOB_MEDIA': {
       const { base64Data, filename, sourceUrl, contentType } = payload;
+      if (!isConnected || !ws || ws.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
+      }
       const sent = sendToDesktop('save_blob_media', {
         base64Data,
         filename,

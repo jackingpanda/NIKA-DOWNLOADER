@@ -174,6 +174,12 @@ function attachSnifferToVideo(video) {
   if (video.dataset.reaIdmAttached) return;
   video.dataset.reaIdmAttached = 'true';
 
+  // On WhatsApp Web, status and media lightboxes are managed exclusively by the dedicated
+  // status observer. Do not attach hover listeners that fight with status overlay controls.
+  if (window.location.hostname.includes('whatsapp.com')) {
+    return;
+  }
+
   const container = video.closest('.html5-video-player') ||
                     video.closest('[class*="player"]') ||
                     video.closest('.video-container') ||
@@ -573,36 +579,186 @@ function isWhatsAppWeb() {
   return window.location.hostname.includes('whatsapp.com');
 }
 
+// In-Page Toast for instant visual feedback on WhatsApp Web
+function showNikaToast(message, isError = false) {
+  let toast = document.getElementById('nika-floating-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'nika-floating-toast';
+    toast.style.cssText = `
+      position: fixed !important;
+      bottom: 30px !important;
+      right: 30px !important;
+      background: rgba(11, 15, 23, 0.96) !important;
+      color: #fff !important;
+      border: 1px solid ${isError ? 'rgba(239, 68, 68, 0.6)' : 'rgba(6, 182, 212, 0.6)'} !important;
+      border-radius: 10px !important;
+      padding: 10px 18px !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.7), 0 0 15px ${isError ? 'rgba(239, 68, 68, 0.3)' : 'rgba(6, 182, 212, 0.3)'} !important;
+      z-index: 2147483647 !important;
+      pointer-events: none !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      transition: opacity 0.3s ease, transform 0.3s ease !important;
+      opacity: 0 !important;
+      transform: translateY(10px) !important;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `
+    <span style="font-size: 16px;">${isError ? '⚠️' : '⚡'}</span>
+    <span>${message}</span>
+  `;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateY(0)';
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+  }, 3500);
+}
+
+// Extract blob binary via MAIN_WORLD bridge (wa-bridge.js)
+function fetchBlobViaBridge(url, filename, contentType) {
+  return new Promise((resolve, reject) => {
+    const id = 'wa_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    let timeoutTimer = null;
+
+    const onResult = (event) => {
+      if (event.data?.type === 'NIKA_WA_BLOB_RESULT' && event.data.id === id) {
+        window.removeEventListener('message', onResult);
+        if (timeoutTimer) clearTimeout(timeoutTimer);
+
+        if (event.data.success && event.data.base64Data) {
+          resolve({
+            base64Data: event.data.base64Data,
+            filename: event.data.filename || filename,
+            contentType: event.data.contentType || contentType
+          });
+        } else {
+          reject(new Error(event.data.error || 'Bridge blob extraction failed'));
+        }
+      }
+    };
+
+    window.addEventListener('message', onResult);
+
+    timeoutTimer = setTimeout(() => {
+      window.removeEventListener('message', onResult);
+      reject(new Error('Timeout waiting for MAIN_WORLD bridge'));
+    }, 8000);
+
+    window.postMessage({
+      type: 'NIKA_WA_FETCH_BLOB',
+      id,
+      url,
+      filename,
+      contentType
+    }, '*');
+  });
+}
+
+// Instant Canvas extraction for rendered images
+function extractImageBase64(imgEl) {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = imgEl.naturalWidth || imgEl.videoWidth || imgEl.width || 1080;
+    canvas.height = imgEl.naturalHeight || imgEl.videoHeight || imgEl.height || 1920;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    return dataUrl.split(',')[1] || null;
+  } catch (err) {
+    console.warn('[NIKA] Canvas extraction error:', err);
+    return null;
+  }
+}
+
+// Browser direct anchor download fallback
+function downloadViaAnchor(url, filename) {
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 1000);
+  } catch (err) {
+    console.warn('[NIKA] Anchor download fallback error:', err);
+  }
+}
+
+// WhatsApp Status viewer container detector - NEVER queries generic div[role="region"]
 function getWhatsAppStatusContainer() {
-  return document.querySelector('div[role="dialog"]') ||
-         document.querySelector('div[role="region"]') ||
-         document.querySelector('[data-testid="status-v3-header"]')?.closest('div[style*="z-index"]') ||
-         document.querySelector('div[data-animate-status-v3="true"]');
+  const v3Header = document.querySelector('[data-testid="status-v3-header"]');
+  if (v3Header) {
+    return v3Header.closest('[data-animate-status-v3="true"]') ||
+           v3Header.closest('div[style*="z-index"]') ||
+           v3Header.parentElement?.parentElement;
+  }
+
+  const v3Container = document.querySelector('div[data-animate-status-v3="true"]') ||
+                      document.querySelector('[data-testid="status-v3-main"]')?.closest('div');
+  if (v3Container) return v3Container;
+
+  // Media preview lightbox dialog
+  const dialogs = document.querySelectorAll('div[role="dialog"]');
+  for (const d of dialogs) {
+    if (d.querySelector('video') || d.querySelector('img[src*="blob:"]') || d.querySelector('[data-icon="x-viewer"]')) {
+      return d;
+    }
+  }
+
+  return null;
 }
 
 function getActiveWhatsAppMedia() {
-  const container = getWhatsAppStatusContainer() || document.body;
+  const container = getWhatsAppStatusContainer();
+  if (!container) return null;
 
-  // 1. Check for active video
-  const video = container.querySelector('video') || document.querySelector('video');
-  if (video && (video.currentSrc || video.src)) {
-    const src = video.currentSrc || video.src;
-    return {
-      element: video,
-      url: src,
-      type: 'video',
-      ext: src.includes('.webm') ? 'webm' : 'mp4',
-      isBlob: src.startsWith('blob:')
-    };
+  // 1. Check for active <video>
+  const videos = Array.from(container.querySelectorAll('video'));
+  for (const v of videos) {
+    const src = v.currentSrc || v.src || v.querySelector('source')?.src;
+    if (src && (src.startsWith('blob:') || src.startsWith('http://') || src.startsWith('https://'))) {
+      return {
+        element: v,
+        url: src,
+        type: 'video',
+        ext: src.includes('.webm') ? 'webm' : 'mp4',
+        isBlob: src.startsWith('blob:')
+      };
+    }
   }
 
-  // 2. Check for active status image / photo (exclude small contact avatars)
+  const allVideos = Array.from(document.querySelectorAll('video'));
+  for (const v of allVideos) {
+    const rect = v.getBoundingClientRect();
+    if (rect.width > 200 && rect.height > 200) {
+      const src = v.currentSrc || v.src || v.querySelector('source')?.src;
+      if (src) {
+        return {
+          element: v,
+          url: src,
+          type: 'video',
+          ext: src.includes('.webm') ? 'webm' : 'mp4',
+          isBlob: src.startsWith('blob:')
+        };
+      }
+    }
+  }
+
+  // 2. Check for active status photo/image
   const images = Array.from(container.querySelectorAll('img'));
   const statusImg = images.find(img => {
     const src = img.src || '';
-    if (!src || src.includes('avatar') || src.includes('profile')) return false;
+    if (!src) return false;
+    if (src.includes('avatar') || src.includes('profile') || src.includes('emoji')) return false;
     const rect = img.getBoundingClientRect();
-    return rect.width > 200 && rect.height > 200;
+    return (rect.width > 200 && rect.height > 200) || (img.naturalWidth > 200 && img.naturalHeight > 200);
   });
 
   if (statusImg && statusImg.src) {
@@ -619,33 +775,108 @@ function getActiveWhatsAppMedia() {
 }
 
 function getWhatsAppStatusContact() {
+  const statusContainer = getWhatsAppStatusContainer();
+  if (statusContainer) {
+    const v3Header = statusContainer.querySelector('[data-testid="status-v3-header"]') || statusContainer.querySelector('header');
+    if (v3Header) {
+      const titleSpan = v3Header.querySelector('span[title]') || v3Header.querySelector('span[dir="auto"]');
+      const text = titleSpan?.getAttribute('title') || titleSpan?.textContent;
+      if (text && text.trim() && text.trim().length < 60) {
+        return text.trim();
+      }
+    }
+  }
+
   const selectors = [
-    'header span[title]',
     '[data-testid="status-v3-header"] span[title]',
-    'header span[dir="auto"]',
-    'div[role="dialog"] header span[dir="auto"]',
-    'div[role="region"] header span[dir="auto"]',
-    'div[data-animate-status-v3="true"] header span'
+    '[data-testid="status-v3-header"] span[dir="auto"]',
+    'div[data-animate-status-v3="true"] header span[title]',
+    'div[data-animate-status-v3="true"] header span[dir="auto"]',
+    'div[role="dialog"] header span[title]',
+    'div[role="dialog"] header span[dir="auto"]'
   ];
   for (const sel of selectors) {
     const el = document.querySelector(sel);
     const text = el?.getAttribute('title') || el?.textContent;
-    if (text && text.trim() && text.length > 1 && text.length < 50 && !text.includes(':')) {
+    if (text && text.trim() && text.length > 0 && text.length < 60 && !text.includes(':') && text.toLowerCase() !== 'status') {
       return text.trim();
     }
   }
   return null;
 }
 
-function downloadCurrentWhatsAppStatus() {
-  const media = getActiveWhatsAppMedia();
+let waStatusActive = false;
+let waStatusMedia = null;
+let waHideDebounceTimer = null;
+
+function initWhatsAppStatusObserver() {
+  if (!isWhatsAppWeb()) return;
+  if (window !== window.top) return; // Guard: Top window only!
+
+  const updateWhatsAppStatusState = () => {
+    const container = getWhatsAppStatusContainer();
+    if (container) {
+      const media = getActiveWhatsAppMedia();
+      if (media && media.url) {
+        waStatusMedia = media;
+        waStatusActive = true;
+
+        if (waHideDebounceTimer) {
+          clearTimeout(waHideDebounceTimer);
+          waHideDebounceTimer = null;
+        }
+
+        if (!snifferButton) {
+          createSnifferButton();
+        }
+
+        positionSniffer(media.element);
+
+        const label = snifferButton.querySelector('.rea-idm-sniffer-label');
+        if (label && !label.textContent.includes('Saved') && !label.textContent.includes('Saving') && !label.textContent.includes('Extracting')) {
+          label.textContent = media.type === 'video' ? 'Download Status Video' : 'Download Status Photo';
+        }
+        const count = snifferButton.querySelector('.rea-idm-sniffer-count');
+        if (count) count.textContent = '1';
+
+        snifferButton.style.display = 'flex';
+        snifferButton.style.opacity = '1';
+        return;
+      }
+    }
+
+    // Debounce hiding so story slide transitions do not cause the button to blink
+    if (waStatusActive && !waHideDebounceTimer) {
+      waHideDebounceTimer = setTimeout(() => {
+        const recheckContainer = getWhatsAppStatusContainer();
+        const recheckMedia = getActiveWhatsAppMedia();
+        if (!recheckContainer || !recheckMedia) {
+          waStatusActive = false;
+          waStatusMedia = null;
+          if (snifferButton && !snifferButton.dataset.customPositioned) {
+            snifferButton.style.display = 'none';
+          }
+        }
+        waHideDebounceTimer = null;
+      }, 1400); // 1.4s debounce completely eliminates slide transition blinking
+    }
+  };
+
+  updateWhatsAppStatusState();
+  setInterval(updateWhatsAppStatusState, 600);
+
+  // Instant response on lightbox open / close
+  const mo = new MutationObserver(() => {
+    updateWhatsAppStatusState();
+  });
+  mo.observe(document.body, { childList: true, subtree: true });
+}
+
+async function downloadCurrentWhatsAppStatus() {
+  const media = getActiveWhatsAppMedia() || waStatusMedia;
   const label = snifferButton?.querySelector('.rea-idm-sniffer-label');
 
   if (!media || !media.url) {
-    if (capturedStreams.length > 0) {
-      triggerDownload(capturedStreams[0]);
-      return;
-    }
     if (label) {
       label.textContent = 'No media found!';
       setTimeout(() => { label.textContent = 'Download Status Media'; }, 2000);
@@ -654,65 +885,100 @@ function downloadCurrentWhatsAppStatus() {
   }
 
   const contact = getWhatsAppStatusContact();
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const cleanContact = contact ? contact.replace(/[\\/:*?"<>|]/g, '').trim() : 'Media';
-  const filename = `WhatsApp_Status_${cleanContact}_${dateStr}.${media.ext}`;
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+  const cleanContact = contact ? contact.replace(/[\\/:*?"<>|]/g, '').trim() : 'Contact';
+  const filename = `WhatsApp_Status_${cleanContact}_${dateStr}_${timeStr}.${media.ext}`;
 
   if (label) {
     label.textContent = 'Saving to NIKA... ⏳';
   }
 
-  triggerDownload({
-    url: media.url,
-    title: `WhatsApp_Status_${cleanContact}`,
-    filename,
-    ext: media.ext,
-    type: media.type,
-    isBlob: media.isBlob,
-    quality: 'WhatsApp Status'
-  });
-}
+  let base64Data = null;
+  const contentType = media.type === 'video' ? 'video/mp4' : 'image/jpeg';
 
-function initWhatsAppStatusObserver() {
-  if (!isWhatsAppWeb()) return;
+  // 1. Instant canvas extraction for images
+  if (media.type === 'image' && media.element) {
+    base64Data = extractImageBase64(media.element);
+  }
 
-  const checkStatus = () => {
-    const statusContainer = getWhatsAppStatusContainer();
-    if (statusContainer) {
-      const media = getActiveWhatsAppMedia();
-      if (media && media.url) {
-        if (!snifferButton) {
-          createSnifferButton();
-        }
-        positionSniffer(media.element);
-        const label = snifferButton.querySelector('.rea-idm-sniffer-label');
-        if (label && !label.textContent.includes('Saved') && !label.textContent.includes('Saving')) {
+  // 2. MAIN_WORLD bridge extraction for video and blob URLs
+  if (!base64Data && media.url.startsWith('blob:')) {
+    try {
+      const bridgeResult = await fetchBlobViaBridge(media.url, filename, contentType);
+      if (bridgeResult?.base64Data) {
+        base64Data = bridgeResult.base64Data;
+      }
+    } catch (err) {
+      console.warn('[NIKA] wa-bridge blob extraction failed, trying direct fetch:', err);
+    }
+  }
+
+  // 3. Fallback to direct fetch in content script
+  if (!base64Data && media.url.startsWith('blob:')) {
+    try {
+      const res = await fetch(media.url);
+      const blob = await res.blob();
+      base64Data = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result?.split(',')[1] || null);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (err) {
+      console.warn('[NIKA] Direct blob fetch failed:', err);
+    }
+  }
+
+  // 4. Send binary payload directly to NIKA Desktop Engine
+  if (base64Data) {
+    chrome.runtime.sendMessage({
+      type: 'SAVE_BLOB_MEDIA',
+      payload: {
+        base64Data,
+        filename,
+        sourceUrl: media.url,
+        contentType
+      }
+    }, (res) => {
+      if (res?.success) {
+        if (label) label.textContent = 'Saved to NIKA! ✅';
+        showNikaToast(`WhatsApp status saved to NIKA Downloads!`);
+      } else {
+        if (label) label.textContent = 'Downloaded to Browser 📥';
+        downloadViaAnchor(media.url, filename);
+        showNikaToast(`Saved via browser (NIKA Desktop offline).`, true);
+      }
+
+      setTimeout(() => {
+        if (label) {
           label.textContent = media.type === 'video' ? 'Download Status Video' : 'Download Status Photo';
         }
-        const count = snifferButton.querySelector('.rea-idm-sniffer-count');
-        if (count) count.textContent = '1';
-        snifferButton.style.display = 'flex';
-      }
-    } else if (snifferButton && !snifferButton.dataset.customPositioned) {
-      snifferButton.style.display = 'none';
-    }
-  };
+      }, 2500);
+    });
+    return;
+  }
 
-  setInterval(checkStatus, 700);
+  // 5. Ultimate fallback if binary extraction was completely blocked
+  downloadViaAnchor(media.url, filename);
+  if (label) {
+    label.textContent = 'Downloaded to Browser 📥';
+    setTimeout(() => {
+      label.textContent = media.type === 'video' ? 'Download Status Video' : 'Download Status Photo';
+    }, 2500);
+  }
 }
 
-function triggerDownload(item) {
+async function triggerDownload(item) {
   const isWhatsApp = window.location.hostname.includes('whatsapp.com');
-  let cleanTitle = item.title;
+  if (isWhatsApp) {
+    await downloadCurrentWhatsAppStatus();
+    return;
+  }
 
-  if (!cleanTitle && isWhatsApp) {
-    const contact = getWhatsAppStatusContact();
-    if (contact) {
-      cleanTitle = `WhatsApp_Status_${contact.replace(/[\\/:*?"<>|]/g, '').trim()}`;
-    } else {
-      cleanTitle = `WhatsApp_Status_${Date.now()}`;
-    }
-  } else if (!cleanTitle) {
+  let cleanTitle = item.title;
+  if (!cleanTitle) {
     cleanTitle = document.title.replace(/\s*-\s*YouTube$/i, '').trim();
     cleanTitle = cleanTitle.replace(/[\\/:*?"<>|]/g, '').trim() || 'video';
   }
@@ -721,77 +987,6 @@ function triggerDownload(item) {
   const dotExt = ext.startsWith('.') ? ext : `.${ext}`;
   const qualityTag = item.quality && !item.quality.includes('Auto') && !item.quality.includes('Status') ? ` [${item.quality.replace(/\s+/g, '')}]` : '';
   const filename = item.filename || `${cleanTitle}${qualityTag}${dotExt}`;
-
-  // Special Handling for in-memory blob URLs (e.g. WhatsApp status)
-  if (item.url && item.url.startsWith('blob:')) {
-    const label = snifferButton?.querySelector('.rea-idm-sniffer-label');
-    if (label) label.textContent = 'Saving to NIKA... ⏳';
-
-    try {
-      fetch(item.url)
-        .then(res => res.blob())
-        .then(blob => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const base64Data = reader.result?.split(',')[1];
-            if (base64Data) {
-              chrome.runtime.sendMessage({
-                type: 'SAVE_BLOB_MEDIA',
-                payload: {
-                  base64Data,
-                  filename,
-                  sourceUrl: item.url,
-                  contentType: blob.type || (item.type === 'image' ? 'image/jpeg' : 'video/mp4')
-                }
-              }, (response) => {
-                if (!response || !response.success) {
-                  // Fallback to browser direct anchor download if bridge is offline
-                  const a = document.createElement('a');
-                  a.href = item.url;
-                  a.download = filename;
-                  document.body.appendChild(a);
-                  a.click();
-                  setTimeout(() => a.remove(), 1000);
-                }
-              });
-            } else {
-              const a = document.createElement('a');
-              a.href = item.url;
-              a.download = filename;
-              document.body.appendChild(a);
-              a.click();
-              setTimeout(() => a.remove(), 1000);
-            }
-          };
-          reader.readAsDataURL(blob);
-        })
-        .catch(err => {
-          console.warn('[NIKA] Blob fetch fallback to browser download:', err);
-          const a = document.createElement('a');
-          a.href = item.url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => a.remove(), 1000);
-        });
-    } catch {
-      const a = document.createElement('a');
-      a.href = item.url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => a.remove(), 1000);
-    }
-
-    if (label) {
-      label.textContent = 'Status Saved! ✅';
-      setTimeout(() => {
-        const isWA = window.location.hostname.includes('whatsapp.com');
-        label.textContent = isWA ? 'Download Status Media' : 'Download This Video';
-      }, 2500);
-    }
-    return;
-  }
 
   // Standard HTTP/HTTPS download forwarded to NIKA engine
   chrome.runtime.sendMessage({
@@ -817,6 +1012,9 @@ function triggerDownload(item) {
 
 // Start observing once DOM is ready
 function initObservers() {
+  if (isWhatsAppWeb() && window !== window.top) {
+    return; // Never run sniffer in WhatsApp iframes
+  }
   observeVideos();
   initWhatsAppStatusObserver();
 }

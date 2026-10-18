@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace raw screenshots with high-definition, informative production mockups for Desktop Dashboard, Multi-Quality Video Sniffer, and WhatsApp Web Status Saver
 - Rebranded entire project identity to NIKA DOWNLOADER with production-grade English documentation, custom brand emblem, and media tutorial walkthroughs
 ### Fixed
+- Resolved WhatsApp status downloads not appearing in desktop window by implementing MAIN_WORLD wa-bridge for blob extraction and fixing QueueManager.tasks Map insertion in bridge server.
+- Eliminated rapid sniffer button flickering on WhatsApp Web by removing competing hover listeners, scoping status detection to active story lightboxes, and adding transition debouncing.
 - Fix WhatsApp Web status sniffer obstruction with draggable root stacking context, direct 1-click status downloading, and in-memory blob saving
 - Fix titlebar brand version displaying Electron runtime version (v44.9.0) instead of package.json release version
 - Fix progress loss and reset to 0 B/Queued on window close [X] by implementing graceful queue shutdown, periodic progress auto-persistence, and disk chunk state recovery

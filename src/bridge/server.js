@@ -3,6 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { WebSocketServer, WebSocket } from 'ws';
 import { logger } from '../core/logger.js';
+import { detectCategory } from '../core/queue-manager.js';
 
 /**
  * ReaBridgeServer - IPC Bridge for Browser Extension & Desktop UI
@@ -140,12 +141,16 @@ export class ReaBridgeServer {
       }
       case 'save_blob_media': {
         try {
-          const { base64Data, filename, sourceUrl } = payload;
+          const { base64Data, filename, sourceUrl, contentType } = payload;
           if (base64Data && filename) {
             const buffer = Buffer.from(base64Data, 'base64');
             const defaultDir = this.queueManager.defaultDownloadDir || path.join(os.homedir(), 'Downloads');
+            await fs.promises.mkdir(defaultDir, { recursive: true });
+
             const targetPath = path.join(defaultDir, filename);
             await fs.promises.writeFile(targetPath, buffer);
+
+            const category = detectCategory(filename);
 
             const task = {
               id: `blob_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -153,6 +158,7 @@ export class ReaBridgeServer {
               filename,
               destinationDir: defaultDir,
               targetFilePath: targetPath,
+              savePath: targetPath,
               totalBytes: buffer.length,
               downloadedBytes: buffer.length,
               percent: 100,
@@ -160,16 +166,22 @@ export class ReaBridgeServer {
               speed: 0,
               supportsRange: false,
               connections: 1,
-              category: 'Videos',
+              category,
               createdAt: Date.now(),
               completedAt: Date.now()
             };
-            this.queueManager.tasks.unshift(task);
-            await this.queueManager.stateStore.save(this.queueManager.tasks);
+            // Insert at the front of the tasks Map so it appears at the top of the UI
+            const existingTasks = Array.from(this.queueManager.tasks.entries());
+            this.queueManager.tasks.clear();
+            this.queueManager.tasks.set(task.id, task);
+            for (const [id, t] of existingTasks) {
+              this.queueManager.tasks.set(id, t);
+            }
+            await this.queueManager.stateStore.save(Array.from(this.queueManager.tasks.values()));
             this.queueManager.emit('task-added', task);
             this.queueManager.emit('task-completed', task);
             logger.info('BRIDGE', `Saved blob media "${filename}" (${buffer.length} bytes) to ${targetPath}`);
-            ws.send(JSON.stringify({ type: 'blob_saved', payload: { success: true, filename, targetPath } }));
+            ws.send(JSON.stringify({ type: 'blob_saved', payload: { success: true, filename, targetPath, task } }));
           }
         } catch (err) {
           logger.error('BRIDGE', `Failed to save blob media: ${err.message}`);
