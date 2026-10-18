@@ -208,9 +208,10 @@ function setupWindowControls() {
   });
 }
 
-// Global Shortcuts (Ctrl+V Paste Link anywhere)
+// Global Shortcuts (Ctrl+V Paste Link anywhere, Delete key to remove tasks)
 function setupGlobalShortcuts() {
   window.addEventListener('keydown', (e) => {
+    // Ctrl+V to add link
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
       const activeEl = document.activeElement;
       if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
@@ -225,9 +226,22 @@ function setupGlobalShortcuts() {
       }).catch(() => {
         openAddModal();
       });
+      return;
+    }
+
+    // Delete key to remove selected/checked download
+    if (e.key === 'Delete' || e.key === 'Del') {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+        return; // Don't intercept when user is typing in search or input fields
+      }
+      const ids = getTargetTaskIds();
+      if (ids.length > 0) {
+        e.preventDefault();
+        openDeleteModal(ids);
+      }
     }
   });
-
 }
 
 // Table Events & Checkbox Management
@@ -241,8 +255,10 @@ function setupTableEvents() {
 
     if (cb.checked) {
       checkedTaskIds.add(id);
+      selectedTaskId = id;
     } else {
       checkedTaskIds.delete(id);
+      if (selectedTaskId === id) selectedTaskId = null;
     }
     updateSelectAllCheckbox();
   });
@@ -517,6 +533,11 @@ function getTargetTaskIds() {
   }
   if (selectedTaskId) {
     return [selectedTaskId];
+  }
+  // Fallback: If only 1 task is visible in current view, target it directly
+  const filtered = getFilteredTasks();
+  if (filtered.length === 1) {
+    return [filtered[0].id];
   }
   return [];
 }
@@ -836,9 +857,16 @@ function setupModalEvents() {
 
     for (const id of idsToDelete) {
       checkedTaskIds.delete(id);
-      await api.removeTask(id, deleteFiles);
+      tasks.delete(id); // Immediate optimistic local removal
+      try {
+        await api.removeTask(id, deleteFiles);
+      } catch (err) {
+        console.error('Failed to remove task:', err);
+      }
     }
     selectedTaskId = null;
+    renderTable();
+    updateBadges();
     updateSelectAllCheckbox();
   });
 

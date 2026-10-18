@@ -264,7 +264,12 @@ export class QueueManager extends EventEmitter {
    */
   async removeTask(id, deleteFile = false) {
     const task = this.tasks.get(id);
-    if (!task) return;
+    if (!task) {
+      // Even if task is not found in memory, emit task-removed and persist to keep all clients in sync
+      this.emit('task-removed', { id, deleteFile });
+      await this._persist();
+      return;
+    }
 
     await this.pauseTask(id);
 
