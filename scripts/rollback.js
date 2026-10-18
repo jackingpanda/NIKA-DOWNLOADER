@@ -171,6 +171,10 @@ export function rollback(targetVersion, options = {}) {
     }
 
     syncVersionFiles(cleanVersion);
+    if (!isWorkingTreeClean()) {
+      runGit(['add', '.']);
+      runGit(['commit', '-m', `chore(rollback): sync version to ${matchedTag}`]);
+    }
     console.log(`\x1b[32m✔ Successfully switched to branch "${branchName}" at ${matchedTag}\x1b[0m`);
     console.log(`\nNext steps:`);
     console.log(`  1. Verify functionality: \x1b[33mnpm test\x1b[0m`);
