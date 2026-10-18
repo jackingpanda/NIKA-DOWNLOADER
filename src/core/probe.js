@@ -72,13 +72,13 @@ export async function probeUrl(url, options = {}) {
   };
 
   if (isGoogleVideo) {
+    delete headers['Cookie']; // CRITICAL: NEVER send YouTube cookies to googlevideo.com
     if (!headers['Referer']) headers['Referer'] = 'https://www.youtube.com/';
     if (!headers['Origin']) headers['Origin'] = 'https://www.youtube.com';
-  }
-
-  if (options.cookies) {
+  } else if (options.cookies) {
     headers['Cookie'] = options.cookies;
   }
+
   if (options.referer) {
     headers['Referer'] = options.referer;
   }
@@ -92,18 +92,36 @@ export async function probeUrl(url, options = {}) {
   let lastModified = null;
   let finalUrl = url;
 
-  // Step 1: Try HTTP HEAD request first
-  try {
-    response = await fetch(url, {
-      method: 'HEAD',
-      headers,
-      redirect: 'follow',
-      signal: AbortSignal.timeout(options.timeoutMs || 10000)
-    });
-    finalUrl = response.url || url;
-  } catch (err) {
-    // If HEAD fails (some servers block HEAD), we proceed to GET range check
-    response = null;
+  // Step 0: For Google Video streams, extract clen and mime upfront from query parameters
+  if (isGoogleVideo) {
+    try {
+      const u = new URL(url);
+      const clenParam = u.searchParams.get('clen');
+      if (clenParam) {
+        contentLength = parseInt(clenParam, 10);
+        supportsRange = true;
+      }
+      const mimeParam = u.searchParams.get('mime');
+      if (mimeParam) {
+        contentType = mimeParam;
+      }
+    } catch {}
+  }
+
+  // Step 1: Try HTTP HEAD request first (skip HEAD for Google Video since HEAD returns 400 Bad Request)
+  if (!isGoogleVideo) {
+    try {
+      response = await fetch(url, {
+        method: 'HEAD',
+        headers,
+        redirect: 'follow',
+        signal: AbortSignal.timeout(options.timeoutMs || 10000)
+      });
+      finalUrl = response.url || url;
+    } catch (err) {
+      // If HEAD fails (some servers block HEAD), we proceed to GET range check
+      response = null;
+    }
   }
 
   // If HEAD succeeded, inspect headers

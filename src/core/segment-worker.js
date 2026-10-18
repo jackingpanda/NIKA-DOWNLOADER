@@ -143,16 +143,19 @@ export class SegmentWorker {
       ...(this.options.headers || {})
     };
 
-    if (this.options.cookies) {
-      headers['Cookie'] = this.options.cookies;
-    }
-    if (this.options.referer) {
-      headers['Referer'] = this.options.referer;
-    }
+    const isGoogleVideo = this.url.includes('googlevideo.com') || (this.options.referer && this.options.referer.includes('youtube.com'));
 
-    if (this.url.includes('googlevideo.com') || (this.options.referer && this.options.referer.includes('youtube.com'))) {
+    if (isGoogleVideo) {
+      delete headers['Cookie']; // CRITICAL: NEVER send YouTube cookies to googlevideo.com
       if (!headers['Referer']) headers['Referer'] = 'https://www.youtube.com/';
       if (!headers['Origin']) headers['Origin'] = 'https://www.youtube.com';
+    } else {
+      if (this.options.cookies) {
+        headers['Cookie'] = this.options.cookies;
+      }
+      if (this.options.referer) {
+        headers['Referer'] = this.options.referer;
+      }
     }
 
     // Set byte range header if Range is supported

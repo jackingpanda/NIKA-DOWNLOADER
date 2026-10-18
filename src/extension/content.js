@@ -48,8 +48,21 @@ function addStreamItem(item) {
   });
 
   if (existingIdx >= 0) {
-    if (!capturedStreams[existingIdx].contentLength && item.contentLength) {
+    // CRITICAL: Always upgrade URL if the incoming item has a live googlevideo.com URL
+    if (item.url && (item.url.includes('googlevideo.com') || !capturedStreams[existingIdx].url)) {
+      capturedStreams[existingIdx].url = item.url;
+    }
+    if (item.contentLength) {
       capturedStreams[existingIdx].contentLength = item.contentLength;
+    }
+    if (item.quality && !capturedStreams[existingIdx].quality) {
+      capturedStreams[existingIdx].quality = item.quality;
+    }
+    if (item.label && !capturedStreams[existingIdx].label) {
+      capturedStreams[existingIdx].label = item.label;
+    }
+    if (item.title && !capturedStreams[existingIdx].title) {
+      capturedStreams[existingIdx].title = item.title;
     }
   } else {
     capturedStreams.push(item);
@@ -988,6 +1001,8 @@ async function triggerDownload(item) {
   const qualityTag = item.quality && !item.quality.includes('Auto') && !item.quality.includes('Status') ? ` [${item.quality.replace(/\s+/g, '')}]` : '';
   const filename = item.filename || `${cleanTitle}${qualityTag}${dotExt}`;
 
+  const isYouTube = window.location.hostname.includes('youtube.com') || (typeof item.url === 'string' && item.url.includes('googlevideo.com'));
+
   // Standard HTTP/HTTPS download forwarded to NIKA engine
   chrome.runtime.sendMessage({
     type: 'DOWNLOAD_MEDIA',
@@ -995,7 +1010,7 @@ async function triggerDownload(item) {
       url: item.url,
       filename,
       referer: window.location.href,
-      isYouTube: true
+      isYouTube
     }
   }, (res) => {
     const label = snifferButton?.querySelector('.rea-idm-sniffer-label');

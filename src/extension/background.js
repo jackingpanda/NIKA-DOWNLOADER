@@ -192,7 +192,40 @@ function sendToDesktop(type, payload) {
     ws.send(JSON.stringify({ type, payload }));
     return true;
   }
+  connectWebSocket();
   return false;
+}
+
+function sendToDesktopAsync(type, payload, timeoutMs = 4000) {
+  return new Promise((resolve) => {
+    if (ws && isConnected && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify({ type, payload }));
+        return resolve(true);
+      } catch {
+        // Fall through to reconnect
+      }
+    }
+
+    connectWebSocket();
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      if (ws && isConnected && ws.readyState === WebSocket.OPEN) {
+        clearInterval(interval);
+        try {
+          ws.send(JSON.stringify({ type, payload }));
+          return resolve(true);
+        } catch {
+          return resolve(false);
+        }
+      }
+      if (Date.now() - startTime >= timeoutMs) {
+        clearInterval(interval);
+        return resolve(false);
+      }
+    }, 100);
+  });
 }
 
 function updateBadge() {
@@ -395,13 +428,24 @@ function addCapturedMedia(tabId, mediaItem) {
   if (mediaItem.isYouTube && mediaItem.itag) {
     const idx = list.findIndex(m => m.itag === mediaItem.itag);
     if (idx >= 0) {
-      if (!list[idx].contentLength && mediaItem.contentLength) {
+      // UPGRADE: Always update URL and contentLength when a fresh request is intercepted
+      list[idx].url = mediaItem.url;
+      if (mediaItem.contentLength) {
         list[idx].contentLength = mediaItem.contentLength;
       }
+      chrome.tabs.sendMessage(tabId, {
+        type: 'MEDIA_DETECTED',
+        payload: list[idx],
+        totalCount: list.length
+      }).catch(() => {});
       return;
     }
   } else {
-    if (list.some(m => m.url === mediaItem.url)) {
+    const existing = list.find(m => m.url === mediaItem.url);
+    if (existing) {
+      if (mediaItem.contentLength && !existing.contentLength) {
+        existing.contentLength = mediaItem.contentLength;
+      }
       return;
     }
   }
@@ -444,55 +488,69 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'DOWNLOAD_MEDIA': {
       const { url, filename, referer, isYouTube } = payload;
-      const cookieUrl = (isYouTube || url.includes('googlevideo.com')) ? 'https://www.youtube.com' : url;
-      chrome.cookies.getAll({ url: cookieUrl }, (cookies) => {
-        let cookieHeader = '';
-        if (cookies && cookies.length > 0) {
-          cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-        }
+      const isGoogleVideo = isYouTube || (typeof url === 'string' && (url.includes('googlevideo.com') || url.includes('youtube.com')));
 
+      const dispatchDownload = async (cookieHeader = '') => {
         const reqHeaders = {
           'User-Agent': navigator.userAgent
         };
-        if (isYouTube || url.includes('googlevideo.com') || (referer && referer.includes('youtube.com'))) {
+        if (isGoogleVideo || (referer && referer.includes('youtube.com'))) {
           reqHeaders['Referer'] = 'https://www.youtube.com/';
           reqHeaders['Origin'] = 'https://www.youtube.com';
         }
 
-        const sent = sendToDesktop('add_download', {
+        const sent = await sendToDesktopAsync('add_download', {
           url,
           filename,
-          referer: referer || (sender.tab ? sender.tab.url : undefined),
-          cookies: cookieHeader,
+          referer: referer || (sender.tab ? sender.tab.url : (isGoogleVideo ? 'https://www.youtube.com/' : undefined)),
+          cookies: isGoogleVideo ? '' : cookieHeader, // CRITICAL: NEVER send YouTube cookies to googlevideo.com
           headers: reqHeaders,
           autoStart: true
         });
 
+        if (sent) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon48.png',
+            title: 'NIKA Download Added',
+            message: `Sent to NIKA:\n${filename || (url.length > 60 ? url.substring(0, 60) + '...' : url)}`
+          });
+        }
         sendResponse({ success: sent });
-      });
-      return true; // Keep message channel open for async cookies query
+      };
+
+      if (!isGoogleVideo && url && (url.startsWith('http://') || url.startsWith('https://'))) {
+        chrome.cookies.getAll({ url }, (cookies) => {
+          let cookieHeader = '';
+          if (cookies && cookies.length > 0) {
+            cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+          }
+          dispatchDownload(cookieHeader);
+        });
+      } else {
+        dispatchDownload('');
+      }
+      return true; // Keep message channel open for async response
     }
 
     case 'SAVE_BLOB_MEDIA': {
       const { base64Data, filename, sourceUrl, contentType } = payload;
-      if (!isConnected || !ws || ws.readyState !== WebSocket.OPEN) {
-        connectWebSocket();
-      }
-      const sent = sendToDesktop('save_blob_media', {
+      sendToDesktopAsync('save_blob_media', {
         base64Data,
         filename,
         sourceUrl,
         contentType
+      }).then(sent => {
+        if (sent) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon48.png',
+            title: 'NIKA Media Saved',
+            message: `Saved: ${filename}\nSaved directly to your Downloads folder.`
+          });
+        }
+        sendResponse({ success: sent });
       });
-      if (sent) {
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'icons/icon48.png',
-          title: 'NIKA Media Saved',
-          message: `Saved: ${filename}\nSaved directly to your Downloads folder.`
-        });
-      }
-      sendResponse({ success: sent });
       return true;
     }
 

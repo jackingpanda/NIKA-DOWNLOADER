@@ -82,6 +82,20 @@ async function runTests() {
   // Cleanup test artifacts
   await fs.rm(tempDir, { recursive: true, force: true });
 
+  console.log('\n--- [Test 5] Testing YouTube Google Video Probe & Cookie Stripping ---');
+  const googleVideoUrl = 'https://rr1---sn-ab5sznzl.googlevideo.com/videoplayback?expire=1792340000&ei=test&ip=127.0.0.1&id=o-test&itag=22&clen=18492040&dur=120.5&mime=video%2Fmp4';
+  const gvProbe = await probeUrl(googleVideoUrl, {
+    cookies: 'LOGIN_INFO=AFmmF2kw...; SAPISID=secret;',
+    headers: { 'Cookie': 'SAPISID=secret;' }
+  });
+  assert.strictEqual(gvProbe.contentLength, 18492040, 'Should parse clen from URL query parameters upfront');
+  assert.strictEqual(gvProbe.supportsRange, true, 'Google Video streams must support Range requests');
+  assert.strictEqual(gvProbe.contentType, 'video/mp4', 'Should deduce mime type from query string');
+  assert.strictEqual(gvProbe.headers['Cookie'], undefined, 'Cookie header must be completely stripped for Google Video');
+  assert.strictEqual(gvProbe.headers['Referer'], 'https://www.youtube.com/', 'Must provide YouTube referer header');
+  assert.strictEqual(gvProbe.headers['Origin'], 'https://www.youtube.com', 'Must provide YouTube origin header');
+  console.log('✅ YouTube Google Video probe & cookie stripping: PASS');
+
   console.log('\n🎉 ALL PHASE 1 CORE TESTS PASSED SUCCESSFULLY!\n');
 }
 
