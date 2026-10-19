@@ -267,13 +267,18 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
   // Intercept the download
   const targetUrl = item.finalUrl || item.url;
 
-  // Retrieve cookies for this URL
-  chrome.cookies.getAll({ url: targetUrl }, (cookies) => {
-    let cookieHeader = '';
-    if (cookies && cookies.length > 0) {
-      cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-    }
+  // Let browser natively handle in-memory client-side exports (blobs, data URLs)
+  if (!targetUrl || targetUrl.startsWith('blob:') || targetUrl.startsWith('data:')) {
+    return;
+  }
 
+  // Cancel browser download immediately to prevent creating partial .crdownload files
+  chrome.downloads.cancel(item.id, () => {
+    chrome.downloads.erase({ id: item.id });
+  });
+
+  // Retrieve cookies and forward to NIKA Desktop Engine
+  const forwardDownload = (cookieHeader = '') => {
     sendToDesktop('add_download', {
       url: targetUrl,
       filename: item.filename,
@@ -286,18 +291,30 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
       autoStart: true
     });
 
-    // Cancel browser download
-    chrome.downloads.cancel(item.id, () => {
-      chrome.downloads.erase({ id: item.id });
-    });
-
     chrome.notifications.create({
       type: 'basic',
       iconUrl: 'icons/icon48.png',
       title: 'NIKA Intercepted Download',
       message: `File: ${item.filename || 'download'}\nRedirected to NIKA engine.`
     });
-  });
+  };
+
+  try {
+    if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+      chrome.cookies.getAll({ url: targetUrl }, (cookies) => {
+        let cookieHeader = '';
+        if (cookies && cookies.length > 0) {
+          cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+        }
+        forwardDownload(cookieHeader);
+      });
+    } else {
+      forwardDownload('');
+    }
+  } catch (err) {
+    console.warn('[NIKA] Failed to get cookies for download:', err);
+    forwardDownload('');
+  }
 });
 
 // 2. Media Stream Sniffing via webRequest

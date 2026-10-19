@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
+- Harden browser download interception with in-memory blob/data bypass, immediate cancel, and cookie error handling
 - Redesign Individual Download Modal with 4-metric telemetry dashboard, auto-fitting connection thread cards, and contextual footer actions
 - Replace raw screenshots with high-definition, informative production mockups for Desktop Dashboard, Multi-Quality Video Sniffer, and WhatsApp Web Status Saver
 - Rebranded entire project identity to NIKA DOWNLOADER with production-grade English documentation, custom brand emblem, and media tutorial walkthroughs
